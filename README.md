@@ -54,3 +54,5 @@ py -X utf8 dev/serveur.py
 - `outils/arbre_vers_json.py` convertit un arbre de notes Markdown (frontmatter `type`, `parent`, `maitrise`…) en `arbre.json`.
 
 Aucune dépendance, aucune étape de compilation : HTML, CSS et modules JavaScript natifs.
+
+**Publier une modification** : augmenter `VERSION` dans `docs/sw.js` à chaque changement du code. Le service worker sert l'appli depuis son cache (elle s'ouvre ainsi sans réseau) ; sans nouvelle version, les appareils garderaient l'ancienne.
