@@ -229,6 +229,17 @@ test('Explorations : 2 à approfondir + 1 à explorer, tirage tournant, consomm�
   egal(vus.map(v => [v.id, v.integree]), [['a1', true]]);
 });
 
+test('App Forme : nombres tolérants et validation automatique du mouvement', () => {
+  egal([34, '34', '34 min', '8 450', '1,5', '', null, 'abc'].map(M.lireNombre), [34, 34, 34, 8450, 1.5, 0, 0, 0]);
+  const forme = { '2026-11-16': { exercice_min: '32 min' }, '2026-11-17': { exercice_min: 12 }, '2026-11-18': { exercice_min: 45 } };
+  const j = {};
+  M.poserEntree(j, '2026-11-18', 'mouvement', M.entreeAnnulee(5)); // décochée à la main : on n'y touche pas
+  const r = M.mouvementsAValider(JEU, j, forme, ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19']);
+  egal(r.map(x => [x.date, x.quete.id, x.minutes]), [['2026-11-16', 'mouvement', 32]]);
+  const jeu2 = M.normaliserJeu({ ...JEU, regles: { forme: { minutes: 10 } } });
+  egal(M.mouvementsAValider(jeu2, {}, forme, ['2026-11-17']).length, 1, 'seuil réglable :');
+});
+
 const ok = resultats.filter(r => r.ok).length;
 document.title = `${ok === resultats.length ? 'OK' : 'ÉCHEC'} ${ok}/${resultats.length}`;
 const liste = document.getElementById('resultats');

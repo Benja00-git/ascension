@@ -2896,3 +2896,25 @@ code {
   font-size: 12px;
   color: var(--encre-3);
 }
+
+/* ───────────────────────── App Forme ───────────────────────── */
+
+.seances {
+  display: grid;
+}
+.seances li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--trait);
+  font-size: 14px;
+}
+.seances li:last-child {
+  border-bottom: 0;
+}
+.seances strong {
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

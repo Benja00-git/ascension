@@ -23,6 +23,7 @@ export const REGLES_DEFAUT = {
   rattrapage: { rang: 'E' },
   survie: { joursRates: 3, joursReussis: 3, quete: 'rapport' },
   heureBascule: 4,
+  forme: { quete: 'mouvement', minutes: 20 },
   joursModifiables: 7,
 };
 
@@ -147,6 +148,31 @@ export function normaliserJeu(brut) {
     succes: Array.isArray(jeu.succes) ? jeu.succes : [],
     explorations: jeu.explorations && typeof jeu.explorations === 'object' ? jeu.explorations : {},
   };
+}
+
+/* ───────────────────────── App Forme (Apple Watch) ───────────────────────── */
+
+/** Lit un nombre écrit n'importe comment par Raccourcis : 34, "34", "34 min", "8 450", "1,5". */
+export function lireNombre(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  const m = String(v ?? '').replace(/\s+/g, '').replace(',', '.').match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+/** Les jours où l'app Forme compte assez de minutes d'exercice pour valider la quête de mouvement,
+ *  sauf si le joueur l'a déjà cochée ou décochée lui-même ce jour-là. */
+export function mouvementsAValider(jeu, journaux, forme, dates) {
+  const regle = jeu.regles.forme || {};
+  const seuil = lireNombre(regle.minutes) || 20;
+  const resultat = [];
+  for (const date of dates) {
+    const f = forme && forme[date];
+    if (!f || lireNombre(f.exercice_min) < seuil) continue;
+    const quete = quetesRegulieres(jeu, date).find(q => q.id === regle.quete);
+    if (!quete || entreesDuJour(journaux, date)[quete.id]) continue;
+    resultat.push({ date, quete, minutes: Math.round(lireNombre(f.exercice_min)) });
+  }
+  return resultat;
 }
 
 /* ───────────────────────── Explorations de l'arbre ───────────────────────── */

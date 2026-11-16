@@ -154,6 +154,8 @@ function traiterAnnonces() {
     if (a.type === 'succes') {
       annoncer(`Succès débloqué : ${a.titre}.`, { type: 'succes', picto: 'trophee', duree: 5200 });
       setTimeout(() => sons.succes(), 500);
+    } else if (a.type === 'forme') {
+      annoncer(`${a.minutes} min d’exercice reçues de la montre : « ${a.titre} » validée (+${a.xp} XP).`, { type: 'xp', picto: 'eclair', duree: 5200 });
     } else if (a.type === 'attribution') {
       const axe = a.axe ? M.axeDe(magasin.jeu, a.axe) : null;
       annoncer(`+${nombre(a.xp)} XP${axe ? ` ${axe.nom}` : ''}${a.motif ? ` — ${a.motif}` : ''}`, { type: 'xp', picto: 'eclair', duree: 5600 });

@@ -4,7 +4,7 @@ import { magasin, enAttente } from '../magasin.js';
 import { API_GITHUB } from '../depot.js';
 import { h, brut, icone, ilYA, pluriel } from '../ui.js';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 export const SIGLE = brut(
   '<svg class="sigle" viewBox="0 0 64 64" aria-hidden="true" focusable="false">' +

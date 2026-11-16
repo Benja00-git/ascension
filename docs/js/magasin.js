@@ -35,6 +35,8 @@ export const magasin = {
   jeuBrut: null,
   jeu: null,
   arbre: null,
+  forme: {},
+  formeShas: {},
   etat: M.etatVide(),
   journaux: {},
   shas: {},
@@ -119,6 +121,8 @@ function sauver() {
     etat: magasin.etat,
     journaux: magasin.journaux,
     shas: magasin.shas,
+    forme: magasin.forme,
+    formeShas: magasin.formeShas,
     sales: [...magasin.sales],
     annonces: magasin.annonces,
     dernier: magasin.sync.dernier,
@@ -132,6 +136,8 @@ function charger() {
   magasin.etat = (d && d.etat) || M.etatVide();
   magasin.journaux = (d && d.journaux) || {};
   magasin.shas = (d && d.shas) || {};
+  magasin.forme = (d && d.forme) || {};
+  magasin.formeShas = (d && d.formeShas) || {};
   magasin.sales = new Set((d && d.sales) || []);
   magasin.annonces = (d && d.annonces) || {};
   magasin.sync.dernier = (d && d.dernier) || null;
@@ -156,9 +162,21 @@ function recalculer(t = horodatage(), origine = 'sync') {
   const jour = aujourdhui();
   let calcul = calculer();
 
-  // 1. Coffres : alignés sur les quêtes réellement faites, pour les jours encore modifiables.
   const dates = [];
   for (let i = 0; i < magasin.jeu.regles.joursModifiables; i++) dates.push(M.ajouterJours(jour, -i));
+
+  // 0. App Forme : assez de minutes d'exercice → la quête de mouvement se coche toute seule.
+  const auto = M.mouvementsAValider(magasin.jeu, magasin.journaux, magasin.forme, dates.filter(d => d >= magasin.jeu.debut));
+  if (auto.length) {
+    for (const a of auto) {
+      const m = M.poserEntree(magasin.journaux, a.date, a.quete.id, M.entreeFaite(a.quete, t, { auto: 'forme', s: `⌚ ${a.minutes} min d’exercice (app Forme)` }));
+      marquerSale(nomJournal(m), `⌚ ${a.quete.titre} — ${a.minutes} min d’exercice (${jjmm(a.date)})`);
+      magasin.file.push({ type: 'forme', date: a.date, minutes: a.minutes, titre: a.quete.titre, xp: a.quete.xp });
+    }
+    calcul = calculer();
+  }
+
+  // 1. Coffres : alignés sur les quêtes réellement faites, pour les jours encore modifiables.
   const mois = M.reconcilierCoffres(magasin.jeu, magasin.journaux, calcul.jours, dates, t);
   if (mois.length) {
     mois.forEach(m => marquerSale(nomJournal(m)));
@@ -415,6 +433,25 @@ export async function synchroniser() {
         if (estNotre(f.nom)) magasin.sales.delete(f.nom); // on n'écrase pas un fichier qu'on n'a pas pu lire
       }
     }
+    // Séances de l'app Forme, écrites par le raccourci iPhone : lues seulement (deux derniers mois).
+    const mois = (await depot.listerSous('forme')).filter(e => e.type === 'dir' && /^\d{4}-\d{2}$/.test(e.nom)).map(e => e.nom).sort().slice(-2);
+    for (const m of mois) {
+      for (const f of await depot.listerSous(`forme/${m}`)) {
+        const cle = `forme/${m}/${f.nom}`;
+        if (f.type !== 'file' || !/\.json$/i.test(f.nom) || magasin.formeShas[cle] === f.sha) continue;
+        try {
+          const doc = JSON.parse(await depot.lireBlob(f.sha));
+          const date = /^\d{4}-\d{2}-\d{2}$/.test(doc.date || '') ? doc.date : f.nom.slice(0, 10);
+          const actuel = magasin.forme[date];
+          if (!actuel || (actuel.fichier || '') <= cle) magasin.forme[date] = { ...doc, date, fichier: cle };
+        } catch (e) {
+          if (e instanceof ErreurDepot && e.code !== 'json') throw e;
+          avertissement = `Fichier de l'app Forme illisible : ${cle}.`;
+        }
+        magasin.formeShas[cle] = f.sha;
+      }
+    }
+
     // Un de nos fichiers a disparu du dépôt : il sera recréé.
     for (const nom of Object.keys(magasin.shas)) {
       if (!distants.has(nom)) {
