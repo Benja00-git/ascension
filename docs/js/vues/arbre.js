@@ -1,5 +1,5 @@
 /* Écran « Arbre » : l'Arbre de la connaissance, en lecture. Les niveaux se gagnent avec le Système. */
-import { NIVEAUX_ARBRE } from '../moteur.js';
+import { NIVEAUX_ARBRE, explorationsConsommees } from '../moteur.js';
 import { magasin } from '../magasin.js';
 import { h, icone, dateCourte, pluriel } from '../ui.js';
 
@@ -117,8 +117,26 @@ export function vueArbre(ui) {
       <ul class="arbre-legende">${legende}</ul>
       <p class="arbre-note">Un niveau se prouve : résumé, quiz ou pratique. Dis au Système « Teste-moi sur… ».${arbre.genere ? ` Mis à jour le ${dateCourte(String(arbre.genere).slice(0, 10))}.` : ''}</p>
     </section>
+    ${blocExplorations()}
     <div class="domaines">${domaines}</div>
   </div>`;
+}
+
+function blocExplorations() {
+  const liste = explorationsConsommees(magasin.jeu, magasin.journaux);
+  if (!liste.length) return '';
+  const attente = liste.filter(x => !x.integree).length;
+  return h`<section class="bloc">
+    <h2 class="bloc-titre">Explorations <span class="bloc-compte">${attente ? `${attente} à intégrer` : 'toutes intégrées'}</span></h2>
+    <ul class="explorations">${liste.slice(0, 8).map(
+      x => h`<li class="${x.integree ? 'est-integree' : ''}">
+        <span class="journal-date">${dateCourte(x.date)}</span>
+        <span class="exploration-corps"><strong>${x.sujet || 'Choix libre'}</strong>${x.noeud ? h`<span>${x.noeud}</span>` : ''}${x.resume ? h`<span>✍️ Résumé écrit</span>` : ''}</span>
+        <span class="etat-puce ${x.integree ? 'etat-termine' : 'etat-propose'}">${x.integree ? 'Intégrée' : 'À intégrer'}</span>
+      </li>`,
+    )}</ul>
+    <p class="bloc-note">Le Système transforme chaque exploration en nœud (🌰, ou 🌱 si ton résumé suffit) à l’entretien du dimanche, ou quand tu le lui demandes.</p>
+  </section>`;
 }
 
 /** Fiche d'un nœud, affichée dans le calque. */

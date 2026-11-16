@@ -212,6 +212,23 @@ test('Résumé pour le Système', () => {
   egal([r.niveau, r.xp, r.modeSurvie, r.rattrapagesDuJour, r.semaine.quotidiennes, r.semaine.id], [3, 55, false, ['vit'], '3/8', '2026-W47']);
 });
 
+test('Explorations : 2 à approfondir + 1 à explorer, tirage tournant, consommées sautées', () => {
+  const A = n => ({ id: `a${n}`, type: 'approfondir', titre: `A${n}` });
+  const X = n => ({ id: `x${n}`, type: 'explorer', titre: `X${n}` });
+  const jeu = { ...JEU, explorations: { '2026-W47': [A(0), A(1), A(2), A(3), A(4), X(0), X(1)] } };
+  const ids = (journaux, d) => M.explorationsDuJour(jeu, journaux, d).options.map(o => o.id);
+  egal(ids({}, '2026-11-16'), ['a0', 'a1', 'x0']);
+  egal(ids({}, '2026-11-17'), ['a2', 'a3', 'x1']);
+  egal(ids({}, '2026-11-18'), ['a4', 'a0', 'x0']);
+  const j = {};
+  M.poserEntree(j, '2026-11-16', 'arbre', M.entreeFaite(JEU.quotidiennes[1], 1, { ex: 'a1', s: 'A1' }));
+  egal(ids(j, '2026-11-16'), ['a0', 'a1', 'x0'], 'le jour même, rien ne bouge :');
+  egal(ids(j, '2026-11-17'), ['a3', 'a4', 'x1'], 'le lendemain, a1 est sauté :');
+  egal(M.explorationsDuJour(jeu, {}, '2026-11-23'), null, 'pas de réservoir la semaine suivante :');
+  const vus = M.explorationsConsommees({ ...jeu, attributions: [{ exploration: '2026-11-16', xp: 10 }] }, j);
+  egal(vus.map(v => [v.id, v.integree]), [['a1', true]]);
+});
+
 const ok = resultats.filter(r => r.ok).length;
 document.title = `${ok === resultats.length ? 'OK' : 'ÉCHEC'} ${ok}/${resultats.length}`;
 const liste = document.getElementById('resultats');

@@ -50,6 +50,18 @@ export function carteQuete(q, { action, inactive = false, extra = '', ton = '' }
   </li>`;
 }
 
+/** La quête « arbre » ouvre le choix d'exploration quand le Système a préparé un réservoir pour la semaine. */
+function carteQuoti(q, c, inactive) {
+  if (q.id !== 'arbre') return carteQuete(q, { action: 'quete', inactive });
+  const e = q.entree;
+  if (q.faite && e && e.s) return carteQuete({ ...q, detail: `📖 ${e.s}` }, { action: 'quete', inactive });
+  const options = !q.faite && !inactive && !q.apercu ? M.explorationsDuJour(magasin.jeu, magasin.journaux, c.date) : null;
+  if (options && options.options.length) {
+    return carteQuete({ ...q, detail: `${q.detail || ''} Le Système te propose 3 explorations.`.trim() }, { action: 'explorer', inactive, ton: 'est-exploration' });
+  }
+  return carteQuete(q, { action: 'quete', inactive });
+}
+
 function messageSysteme(c) {
   const { jeu, calcul } = magasin;
   const { jour, date, auj, futur, modifiable } = c;
@@ -219,7 +231,7 @@ export function vueQuetes(ui) {
         ${survie}
         <section class="bloc">
           <h2 class="bloc-titre">${titreJour} <span class="bloc-compte">${j ? `${j.faites}/${j.total}` : c.futur || !calcul.commence ? 'aperçu' : ''}</span></h2>
-          ${quetes.length ? h`<ul class="quetes">${quetes.map(q => carteQuete(q, { action: 'quete', inactive }))}</ul>` : h`<p class="vide">Aucune quête ce jour-là.</p>`}
+          ${quetes.length ? h`<ul class="quetes">${quetes.map(q => carteQuoti(q, c, inactive))}</ul>` : h`<p class="vide">Aucune quête ce jour-là.</p>`}
           ${archives}
           ${j && !c.modifiable ? h`<p class="bloc-note">${icone('verrou')} Jour clos : il reste ${pluriel(jeu.regles.joursModifiables, 'jour')} pour corriger une journée.</p>` : ''}
         </section>

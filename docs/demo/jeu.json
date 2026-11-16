@@ -214,5 +214,91 @@
    "motif": "Nœud « Intérêts composés » → 🌱 Pousse",
    "type": "arbre"
   }
- ]
+ ],
+ "explorations": {
+  "S0": [
+   {
+    "id": "interets",
+    "type": "approfondir",
+    "noeud": "Intérêts composés",
+    "titre": "Revoir les intérêts composés avec un exemple chiffré",
+    "ressource": {
+     "titre": "Intérêts composés : le guide",
+     "format": "article",
+     "duree": "10 min",
+     "url": "https://fr.wikipedia.org/wiki/Int%C3%A9r%C3%AAts_compos%C3%A9s"
+    },
+    "pourquoi": "Le nœud est à 🌱 : un exemple chiffré prépare le niveau 🌿."
+   },
+   {
+    "id": "indiciels",
+    "type": "approfondir",
+    "noeud": "Fonds indiciels",
+    "titre": "Comprendre ce que réplique un fonds indiciel",
+    "ressource": {
+     "titre": "Fonds indiciel",
+     "format": "article",
+     "duree": "12 min",
+     "url": "https://fr.wikipedia.org/wiki/Fonds_indiciel"
+    },
+    "pourquoi": "Débloque « Allocation d’actifs »."
+   },
+   {
+    "id": "fractionne",
+    "type": "approfondir",
+    "noeud": "Fractionné",
+    "titre": "Le fractionné, pour qui et quand",
+    "ressource": {
+     "titre": "Entraînement fractionné",
+     "format": "article",
+     "duree": "8 min",
+     "url": "https://fr.wikipedia.org/wiki/Entra%C3%AEnement_fractionn%C3%A9"
+    },
+    "pourquoi": "Suite logique de l’endurance fondamentale."
+   },
+   {
+    "id": "sommeil",
+    "type": "approfondir",
+    "noeud": "Sommeil",
+    "titre": "Les cycles du sommeil",
+    "ressource": {
+     "titre": "Sommeil",
+     "format": "article",
+     "duree": "15 min",
+     "url": "https://fr.wikipedia.org/wiki/Sommeil"
+    },
+    "pourquoi": "Pour tenir le couvre-feu en connaissance de cause."
+   },
+   {
+    "id": "habitudes",
+    "type": "explorer",
+    "domaine": "Monde",
+    "nouveau": true,
+    "noeud": "Formation des habitudes",
+    "titre": "Comment se forment les habitudes",
+    "ressource": {
+     "titre": "Habitude",
+     "format": "article",
+     "duree": "10 min",
+     "url": "https://fr.wikipedia.org/wiki/Habitude"
+    },
+    "pourquoi": "Ascension est un système d’habitudes."
+   },
+   {
+    "id": "cartes",
+    "type": "explorer",
+    "domaine": "Monde",
+    "nouveau": true,
+    "noeud": "Lire une carte",
+    "titre": "Les projections cartographiques",
+    "ressource": {
+     "titre": "Projection cartographique",
+     "format": "article",
+     "duree": "12 min",
+     "url": "https://fr.wikipedia.org/wiki/Projection_cartographique"
+    },
+    "pourquoi": "Une terre inexplorée de l’arbre."
+   }
+  ]
+ }
 }

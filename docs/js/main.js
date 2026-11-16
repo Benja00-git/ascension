@@ -26,6 +26,7 @@ import { vueQuetes, contexteQuetes } from './vues/quetes.js';
 import { vueStatut } from './vues/statut.js';
 import { vueDonjons } from './vues/donjons.js';
 import { vueArbre, ficheNoeud } from './vues/arbre.js';
+import { ficheExploration, optionsExploration } from './vues/exploration.js';
 import { vueReglages, vueAccueil, vueAttente, libelleSync, SIGLE } from './vues/reglages.js';
 
 const ui = {
@@ -295,6 +296,11 @@ const actions = {
       sons.annule();
     }
   },
+  explorer() {
+    const c = contexteQuetes(ui);
+    if (!c.jour || !c.modifiable) return;
+    ouvrirCalque(ficheExploration(c.date), { classe: 'calque-feuille' });
+  },
   noeud(el) {
     const fiche = ficheNoeud(el.dataset.nom);
     if (fiche) ouvrirCalque(fiche, { classe: 'calque-feuille' });
@@ -387,6 +393,45 @@ document.addEventListener('click', e => {
   if (action) action(el, e);
 });
 
+document.addEventListener('submit', e => {
+  const fx = e.target instanceof Element ? e.target.closest('[data-form="exploration"]') : null;
+  if (!fx) return;
+  e.preventDefault();
+  const donnees = new FormData(fx);
+  const choix = String(donnees.get('choix') || '');
+  const sujet = String(donnees.get('sujet') || '').trim();
+  const resume = String(donnees.get('resume') || '').trim();
+  const erreur = fx.querySelector('.erreur');
+  const dire = texte => {
+    erreur.textContent = texte;
+    erreur.hidden = false;
+  };
+  if (!choix) return dire('Choisis une des explorations, ou le choix libre.');
+  if (choix === 'libre' && !sujet) return dire('Dis en quelques mots sur quoi porte ton choix libre.');
+  const date = fx.dataset.date;
+  const jour = magasin.calcul && magasin.calcul.jours.get(date);
+  const quete = jour && jour.quetes.find(q => q.id === 'arbre');
+  if (!quete || quete.faite) return fermerCalque(false);
+  const option = optionsExploration(date).find(o => o.id === choix);
+  const extra = { ex: choix, s: choix === 'libre' ? sujet : (option && option.ressource && option.ressource.titre) || (option && option.titre) || choix };
+  if (option && option.noeud) extra.nd = option.noeud;
+  if (resume) extra.r = resume;
+  const r = basculerQuete(date, quete, extra);
+  fermerCalque(true);
+  if (!r) return;
+  sons.quete();
+  setTimeout(() => {
+    const coche = zones.vue.querySelector('.quete[data-id="arbre"] .quete-coche');
+    if (coche) {
+      const p = centreDe(coche);
+      eclats(p.x, p.y, couleurAxe('int'), 20);
+      flotteur(p.x, p.y - 20, `+${quete.xp} XP`);
+    }
+  }, 60);
+  annoncer('Exploration enregistrée. Le Système l’ajoutera à ton arbre.', { duree: 3600 });
+  if (r.coffreOuvert) ouvertureCoffre();
+});
+
 document.addEventListener('submit', async e => {
   const form = e.target instanceof Element ? e.target.closest('[data-form="connexion"]') : null;
   if (!form) return;
@@ -424,7 +469,7 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && calqueOuvert() && document.getElementById('calque').dataset.fermable) return fermerCalque(false);
   const cible = e.target;
-  if (cible instanceof HTMLInputElement || calqueOuvert() || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (cible instanceof HTMLInputElement || cible instanceof HTMLTextAreaElement || calqueOuvert() || e.ctrlKey || e.metaKey || e.altKey) return;
   const i = Number(e.key) - 1;
   if (Number.isInteger(i) && ONGLETS[i] && magasin.calcul) allerA(ONGLETS[i][0]);
 });

@@ -1,6 +1,6 @@
 /* Ascension — service worker : met l'appli en cache pour qu'elle s'ouvre sans réseau.
    Les échanges avec GitHub ne passent jamais par ce cache. */
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE = `ascension-${VERSION}`;
 const FICHIERS = [
   './',
@@ -18,6 +18,7 @@ const FICHIERS = [
   'js/vues/donjons.js',
   'js/vues/arbre.js',
   'js/vues/reglages.js',
+  'js/vues/exploration.js',
   'demo/jeu.json',
   'demo/arbre.json',
   'icones/favicon.svg',

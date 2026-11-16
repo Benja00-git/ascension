@@ -145,7 +145,56 @@ export function normaliserJeu(brut) {
     donjons: (jeu.donjons || []).map(d => ({ ...d, etages: (d.etages || []).map(quete) })),
     attributions: Array.isArray(jeu.attributions) ? jeu.attributions : [],
     succes: Array.isArray(jeu.succes) ? jeu.succes : [],
+    explorations: jeu.explorations && typeof jeu.explorations === 'object' ? jeu.explorations : {},
   };
+}
+
+/* ───────────────────────── Explorations de l'arbre ───────────────────────── */
+
+/** Les explorations déjà consommées (quête « arbre » cochée avec un choix), de la plus récente à la plus ancienne. */
+export function explorationsConsommees(jeu, journaux) {
+  const integrees = new Set(jeu.attributions.map(a => a && a.exploration).filter(Boolean));
+  const liste = [];
+  for (const doc of Object.values(journaux)) {
+    for (const [date, entrees] of Object.entries((doc && doc.jours) || {})) {
+      const e = entrees && entrees.arbre;
+      if (estFaite(e) && (e.ex || e.s)) liste.push({ date, id: e.ex || 'libre', sujet: e.s || '', resume: e.r || '', noeud: e.nd || '', integree: integrees.has(date) });
+    }
+  }
+  return liste.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/** Les 3 explorations proposées pour une date, tirées du réservoir de la semaine :
+ *  deux pour approfondir, une pour explorer ailleurs ; ce qui a été consommé avant cette date est sauté,
+ *  et le tirage tourne d'un jour à l'autre. Renvoie null s'il n'y a pas de réservoir cette semaine. */
+export function explorationsDuJour(jeu, journaux, date) {
+  const reservoir = (jeu.explorations || {})[semaineIso(date)];
+  if (!Array.isArray(reservoir) || !reservoir.length) return null;
+  const avant = new Set();
+  for (const doc of Object.values(journaux)) {
+    for (const [d, entrees] of Object.entries((doc && doc.jours) || {})) {
+      const e = entrees && entrees.arbre;
+      if (d < date && estFaite(e) && e.ex) avant.add(e.ex);
+    }
+  }
+  const libres = reservoir.filter(o => o && o.id && o.titre && !avant.has(o.id));
+  const approfondir = libres.filter(o => o.type !== 'explorer');
+  const explorer = libres.filter(o => o.type === 'explorer');
+  const i = jourSemaine(date) - 1;
+  const choix = [];
+  const prendre = (liste, k) => {
+    if (!liste.length) return;
+    const o = liste[k % liste.length];
+    if (!choix.includes(o)) choix.push(o);
+  };
+  prendre(approfondir, 2 * i);
+  prendre(approfondir, 2 * i + 1);
+  prendre(explorer, i);
+  for (const o of [...approfondir, ...explorer]) {
+    if (choix.length >= 3) break;
+    if (!choix.includes(o)) choix.push(o);
+  }
+  return { options: choix.slice(0, 3) };
 }
 
 export function validerJeu(brut) {

@@ -234,14 +234,14 @@ function ecart(avant, date) {
 }
 
 /** Coche ou décoche une quotidienne (ou un rattrapage) pour une date donnée. */
-export function basculerQuete(date, quete) {
+export function basculerQuete(date, quete, extra) {
   if (!magasin.jeu || !M.estModifiable(magasin.jeu, date, aujourdhui())) return null;
   const avant = instantane();
   const coffreAvant = !!(magasin.calcul.jours.get(date) || {}).coffre;
   const t = horodatage();
   const faite = !quete.faite;
-  const mois = M.poserEntree(magasin.journaux, date, quete.id, faite ? M.entreeFaite(quete, t) : M.entreeAnnulee(t));
-  marquerSale(nomJournal(mois), `${faite ? '✅' : '↩️'} ${quete.titre} (${jjmm(date)})`);
+  const mois = M.poserEntree(magasin.journaux, date, quete.id, faite ? M.entreeFaite(quete, t, extra) : M.entreeAnnulee(t));
+  marquerSale(nomJournal(mois), `${faite ? '✅' : '↩️'} ${quete.titre}${faite && extra && extra.s ? ` — ${extra.s}` : ''} (${jjmm(date)})`);
   recalculer(t, 'action');
   planifierSync(2500);
   notifier();
@@ -528,6 +528,12 @@ export async function passerEnDemo({ neuf = false } = {}) {
       hebdo[M.semaineIso(M.ajouterJours(M.lundiDe(jour), decalage * 7))] = liste;
     }
     jeu.hebdo = hebdo;
+    const explorations = {};
+    for (const [cle, liste] of Object.entries(jeu.explorations || {})) {
+      const decalage = Number(cle.replace('S', ''));
+      explorations[M.semaineIso(M.ajouterJours(M.lundiDe(jour), decalage * 7))] = liste;
+    }
+    jeu.explorations = explorations;
     (jeu.attributions || []).forEach(a => {
       a.le = M.ajouterJours(jour, Number(a.ilYA || 0) * -1);
       delete a.ilYA;
