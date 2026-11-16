@@ -1,0 +1,9 @@
+# Données de test locales (copies de données réelles possibles)
+/dev/depot-test/
+
+# Divers
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,218 @@
+{
+ "format": "ascension/jeu@1",
+ "nom": "Ascension — démo",
+ "debutRelatif": -12,
+ "annonce": {
+  "texte": "Mode démo : explore librement, tout reste sur cet appareil."
+ },
+ "quotidiennes": [
+  {
+   "id": "mouvement",
+   "titre": "Bouger vingt minutes",
+   "detail": "Marche rapide, course, vélo ou renforcement.",
+   "axe": "for",
+   "rang": "E"
+  },
+  {
+   "id": "apprendre",
+   "titre": "Quinze minutes d’apprentissage",
+   "detail": "Lire, regarder ou réviser un sujet précis.",
+   "axe": "int",
+   "rang": "E"
+  },
+  {
+   "id": "rapport",
+   "titre": "Le rapport du soir",
+   "detail": "Trois lignes sur la journée.",
+   "axe": "vol",
+   "rang": "E"
+  }
+ ],
+ "tournantes": [
+  {
+   "id": "couvre-feu",
+   "jour": 1,
+   "titre": "Couvre-feu",
+   "detail": "Au lit avant 23 h 30.",
+   "axe": "vit",
+   "rang": "E"
+  },
+  {
+   "id": "signal",
+   "jour": 2,
+   "titre": "Signal",
+   "detail": "Prendre des nouvelles d’un proche.",
+   "axe": "cha",
+   "rang": "E"
+  },
+  {
+   "id": "gammes",
+   "jour": 3,
+   "titre": "Gammes",
+   "detail": "Quinze minutes de pratique créative.",
+   "axe": "dex",
+   "rang": "E"
+  },
+  {
+   "id": "cuisine",
+   "jour": 4,
+   "titre": "Cuisine maison",
+   "detail": "Un repas cuisiné soi-même.",
+   "axe": "vit",
+   "rang": "D"
+  },
+  {
+   "id": "rencontre",
+   "jour": 5,
+   "titre": "Rencontre",
+   "detail": "Voir quelqu’un, ou un vrai appel.",
+   "axe": "cha",
+   "rang": "D"
+  },
+  {
+   "id": "atelier",
+   "jour": 6,
+   "titre": "Atelier",
+   "detail": "Trente minutes de création.",
+   "axe": "dex",
+   "rang": "D"
+  },
+  {
+   "id": "conseil",
+   "jour": 7,
+   "titre": "Le conseil du dimanche",
+   "detail": "Le bilan de la semaine.",
+   "axe": "vol",
+   "rang": "D"
+  }
+ ],
+ "hebdo": {
+  "S-1": [
+   {
+    "id": "sorties",
+    "titre": "Deux séances de sport",
+    "detail": "Notées dans le carnet.",
+    "axe": "for",
+    "rang": "C"
+   },
+   {
+    "id": "fiche",
+    "titre": "Une fiche de lecture",
+    "detail": "Avec tes mots : définition et trois points clés.",
+    "axe": "int",
+    "rang": "C"
+   },
+   {
+    "id": "repas",
+    "titre": "Quatre repas maison",
+    "axe": "vit",
+    "rang": "C"
+   }
+  ],
+  "S0": [
+   {
+    "id": "sorties",
+    "titre": "Trois séances de sport",
+    "detail": "Dont une sortie longue.",
+    "axe": "for",
+    "rang": "C"
+   },
+   {
+    "id": "quiz",
+    "titre": "Un quiz réussi",
+    "detail": "Sur un nœud de l’arbre, sans relire.",
+    "axe": "int",
+    "rang": "C"
+   },
+   {
+    "id": "invitation",
+    "titre": "Inviter quelqu’un",
+    "detail": "Un dîner, un café, une sortie.",
+    "axe": "cha",
+    "rang": "C"
+   },
+   {
+    "id": "defi",
+    "titre": "Une semaine sans écran après 22 h",
+    "axe": "vol",
+    "rang": "B",
+    "boss": true
+   }
+  ]
+ },
+ "donjons": [
+  {
+   "id": "route",
+   "nom": "La longue route",
+   "sousTitre": "Courir dix kilomètres",
+   "emoji": "🏔️",
+   "statut": "ouvert",
+   "etages": [
+    {
+     "id": "regularite",
+     "titre": "Trois sorties par semaine pendant un mois",
+     "rang": "B",
+     "axe": "for"
+    },
+    {
+     "id": "sept",
+     "titre": "Sept kilomètres sans s’arrêter",
+     "rang": "B",
+     "axe": "for"
+    },
+    {
+     "id": "dix",
+     "titre": "Dix kilomètres",
+     "detail": "Le jour de la course.",
+     "rang": "A",
+     "axe": "for",
+     "boss": true
+    }
+   ]
+  },
+  {
+   "id": "recital",
+   "nom": "Le récital",
+   "sousTitre": "Jouer un morceau en entier devant quelqu’un",
+   "emoji": "🎹",
+   "statut": "propose",
+   "etages": [
+    {
+     "id": "mains",
+     "titre": "Mains séparées, sans faute",
+     "rang": "C",
+     "axe": null
+    },
+    {
+     "id": "ensemble",
+     "titre": "Mains ensemble, au tempo",
+     "rang": "B",
+     "axe": null
+    },
+    {
+     "id": "public",
+     "titre": "Le jouer devant un public",
+     "rang": "A",
+     "axe": null,
+     "boss": true
+    }
+   ]
+  }
+ ],
+ "attributions": [
+  {
+   "ilYA": 7,
+   "axe": "int",
+   "xp": 10,
+   "motif": "Nœud « Intérêts composés » → 🌰 Graine",
+   "type": "arbre"
+  },
+  {
+   "ilYA": 3,
+   "axe": "int",
+   "xp": 25,
+   "motif": "Nœud « Intérêts composés » → 🌱 Pousse",
+   "type": "arbre"
+  }
+ ]
+}

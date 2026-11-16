@@ -1,0 +1,109 @@
+{
+ "format": "ascension/arbre@1",
+ "noeuds": [
+  {
+   "nom": "Finance",
+   "type": "domaine",
+   "emoji": "💰"
+  },
+  {
+   "nom": "Corps",
+   "type": "domaine",
+   "emoji": "🏃"
+  },
+  {
+   "nom": "Arts",
+   "type": "domaine",
+   "emoji": "🎨"
+  },
+  {
+   "nom": "Monde",
+   "type": "domaine",
+   "emoji": "🌍"
+  },
+  {
+   "nom": "Épargne",
+   "type": "branche",
+   "domaine": "Finance",
+   "parent": "Finance"
+  },
+  {
+   "nom": "Intérêts composés",
+   "type": "noeud",
+   "domaine": "Finance",
+   "parent": "Épargne",
+   "maitrise": 2,
+   "prerequis": []
+  },
+  {
+   "nom": "Fonds indiciels",
+   "type": "noeud",
+   "domaine": "Finance",
+   "parent": "Épargne",
+   "maitrise": 1,
+   "prerequis": []
+  },
+  {
+   "nom": "Allocation d’actifs",
+   "type": "noeud",
+   "domaine": "Finance",
+   "parent": "Épargne",
+   "maitrise": 0,
+   "prerequis": [
+    "Fonds indiciels"
+   ]
+  },
+  {
+   "nom": "Course à pied",
+   "type": "branche",
+   "domaine": "Corps",
+   "parent": "Corps"
+  },
+  {
+   "nom": "Endurance fondamentale",
+   "type": "noeud",
+   "domaine": "Corps",
+   "parent": "Course à pied",
+   "maitrise": 3,
+   "prerequis": []
+  },
+  {
+   "nom": "Fractionné",
+   "type": "noeud",
+   "domaine": "Corps",
+   "parent": "Course à pied",
+   "maitrise": 1,
+   "prerequis": []
+  },
+  {
+   "nom": "Sommeil",
+   "type": "noeud",
+   "domaine": "Corps",
+   "parent": "Corps",
+   "maitrise": 1,
+   "prerequis": []
+  },
+  {
+   "nom": "Piano",
+   "type": "branche",
+   "domaine": "Arts",
+   "parent": "Arts"
+  },
+  {
+   "nom": "Lecture de notes",
+   "type": "noeud",
+   "domaine": "Arts",
+   "parent": "Piano",
+   "maitrise": 2,
+   "prerequis": []
+  },
+  {
+   "nom": "Accords et renversements",
+   "type": "noeud",
+   "domaine": "Arts",
+   "parent": "Piano",
+   "maitrise": 0,
+   "prerequis": []
+  }
+ ]
+}

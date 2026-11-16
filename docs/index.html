@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com http://localhost:* http://127.0.0.1:*; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Ascension</title>
+<meta name="description" content="Ascension : tes quêtes, ton niveau, ton rang.">
+<meta name="theme-color" content="#04060d">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ascension">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icones/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="fond" aria-hidden="true">
+  <div class="fond-grille"></div>
+  <div class="fond-particules"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</div>
+
+<div id="app" class="app" data-etat="attente">
+  <header id="entete" class="entete"></header>
+  <main id="vue" class="vue"></main>
+  <nav id="nav" class="nav" aria-label="Navigation principale"></nav>
+</div>
+
+<div id="fx" class="fx" aria-hidden="true"></div>
+<div id="annonces" class="annonces" aria-live="polite"></div>
+<div id="calque" class="calque" hidden></div>
+
+<noscript><p style="padding:24px;color:#eaf2ff;font-family:system-ui,sans-serif">Ascension a besoin de JavaScript pour fonctionner.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
