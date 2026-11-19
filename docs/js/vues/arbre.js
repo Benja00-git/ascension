@@ -2,6 +2,7 @@
 import { NIVEAUX_ARBRE, explorationsConsommees } from '../moteur.js';
 import { magasin } from '../magasin.js';
 import { h, icone, dateCourte, pluriel } from '../ui.js';
+import { constellation } from './constellation.js';
 
 /** Organise la liste plate d'arbre.json en domaines → branches → nœuds. */
 export function structurer(arbre, aujourdhui) {
@@ -91,6 +92,12 @@ export function vueArbre(ui) {
   ];
   const points = s.noeuds.reduce((somme, n) => somme + n.maitrise, 0);
 
+  const vue = ui.vueArbre === 'liste' ? 'liste' : 'arbre';
+  const bascule = h`<div class="segment-vue" role="tablist" aria-label="Affichage">
+    <button role="tab" data-action="arbre-vue" data-vue="arbre" aria-selected="${vue === 'arbre' ? 'true' : 'false'}">Arbre</button>
+    <button role="tab" data-action="arbre-vue" data-vue="liste" aria-selected="${vue === 'liste' ? 'true' : 'false'}">Liste</button>
+  </div>`;
+
   const domaines = s.domaines.map(d => {
     const f = d.feuilles;
     const ouvert = ui.domaines.has(d.nom);
@@ -117,9 +124,26 @@ export function vueArbre(ui) {
       <ul class="arbre-legende">${legende}</ul>
       <p class="arbre-note">Un niveau se prouve : résumé, quiz ou pratique. Dis au Système « Teste-moi sur… ».${arbre.genere ? ` Mis à jour le ${dateCourte(String(arbre.genere).slice(0, 10))}.` : ''}</p>
     </section>
+    ${bascule}
+    ${vue === 'arbre' ? vueConstellation(s, ui) : h`<div class="domaines">${domaines}</div>`}
     ${blocExplorations()}
-    <div class="domaines">${domaines}</div>
   </div>`;
+}
+
+function vueConstellation(s, ui) {
+  const avecNoeuds = s.domaines.filter(d => d.feuilles.length);
+  const choisi = s.domaines.find(d => d.nom === ui.domaineArbre && d.feuilles.length) || avecNoeuds[0];
+  if (!choisi) return h`<p class="vide">Aucun nœud pour l’instant.</p>`;
+  const f = choisi.feuilles;
+  return h`<section class="arbre-vue">
+    <div class="jetons arbre-domaines">${s.domaines.map(
+      d => h`<button type="button" class="jeton ${d === choisi ? 'est-actif' : ''}" data-action="arbre-domaine" data-nom="${d.nom}" aria-pressed="${d === choisi ? 'true' : 'false'}" ${d.feuilles.length ? '' : h`disabled`}>${d.emoji || '🌿'} ${d.nom}</button>`,
+    )}</div>
+    <div class="constellation" data-defile>
+      ${constellation(s, choisi)}
+    </div>
+    <p class="arbre-note">${pluriel(f.length, 'nœud')} · ${f.filter(n => n.maitrise >= 2).length} compris. L’arbre pousse vers le haut : un nœud s’allume quand ses prérequis sont compris (🌱). Touche un nœud pour sa fiche.</p>
+  </section>`;
 }
 
 function blocExplorations() {
@@ -160,6 +184,14 @@ export function ficheNoeud(nom) {
         <span class="xp">+${niv.xp} INT</span>
       </li>`,
     )}</ol>
+    ${n.prerequis && n.prerequis.length ? h`<p class="fiche-note"><strong>Prérequis :</strong> ${n.prerequis.map(p => {
+      const q = s.noeuds.find(x => x.nom === p);
+      return `${q ? iconeNoeud(q) : '·'} ${p}`;
+    }).join(' · ')}</p>` : ''}
+    ${(() => {
+      const ouvre = s.noeuds.filter(x => (x.prerequis || []).includes(n.nom));
+      return ouvre.length ? h`<p class="fiche-note"><strong>Débloque :</strong> ${ouvre.map(x => x.nom).join(' · ')}</p>` : '';
+    })()}
     ${n.verrouille ? h`<p class="fiche-alerte">${icone('verrou')} Verrouillé : il faut d’abord comprendre ${n.manque.map(m => `« ${m} »`).join(', ')}.</p>` : ''}
     ${n.rouille ? h`<p class="fiche-alerte">🍂 Nœud rouillé depuis le ${dateCourte(n.revision)} : un quiz de révision t’attend.</p>` : ''}
     ${!n.rouille && n.revision ? h`<p class="fiche-note">Prochaine révision : ${dateCourte(n.revision)}.</p>` : ''}

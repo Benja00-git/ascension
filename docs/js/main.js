@@ -41,6 +41,8 @@ const ui = {
   onglet: 'quetes',
   date: null, // null = aujourd'hui
   domaines: new Set(),
+  vueArbre: 'arbre',
+  domaineArbre: null,
   connexion: { ouverte: false, avance: false, occupe: false, erreur: '', champs: { depot: '', jeton: '', dossier: '', branche: '', api: '' } },
 };
 
@@ -314,6 +316,14 @@ const actions = {
   noeud(el) {
     const fiche = ficheNoeud(el.dataset.nom);
     if (fiche) ouvrirCalque(fiche, { classe: 'calque-feuille' });
+  },
+  'arbre-vue'(el) {
+    ui.vueArbre = el.dataset.vue;
+    rendre();
+  },
+  'arbre-domaine'(el) {
+    ui.domaineArbre = el.dataset.nom;
+    rendre();
   },
   domaine(el) {
     const nom = el.dataset.nom;
@@ -671,6 +681,12 @@ document.addEventListener('input', e => {
 });
 
 document.addEventListener('keydown', e => {
+  // Les nœuds de l'arbre (SVG) s'ouvrent aussi au clavier.
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t instanceof Element && t.getAttribute('role') === 'button' && t.dataset.action && actions[t.dataset.action]) {
+    e.preventDefault();
+    return actions[t.dataset.action](t, e);
+  }
   if (e.key === 'Escape' && calqueOuvert() && document.getElementById('calque').dataset.fermable) return fermerCalque(false);
   const cible = e.target;
   if (cible instanceof HTMLInputElement || cible instanceof HTMLTextAreaElement || calqueOuvert() || e.ctrlKey || e.metaKey || e.altKey) return;
