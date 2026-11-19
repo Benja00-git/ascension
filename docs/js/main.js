@@ -27,6 +27,7 @@ import { vueStatut } from './vues/statut.js';
 import { vueDonjons } from './vues/donjons.js';
 import { vueArbre, ficheNoeud } from './vues/arbre.js';
 import { ficheExploration, optionsExploration } from './vues/exploration.js';
+import { ficheSeance, lireSeance } from './vues/seance.js';
 import { vueReglages, vueAccueil, vueAttente, libelleSync, SIGLE } from './vues/reglages.js';
 
 const ui = {
@@ -154,8 +155,6 @@ function traiterAnnonces() {
     if (a.type === 'succes') {
       annoncer(`Succès débloqué : ${a.titre}.`, { type: 'succes', picto: 'trophee', duree: 5200 });
       setTimeout(() => sons.succes(), 500);
-    } else if (a.type === 'forme') {
-      annoncer(`${a.minutes} min d’exercice reçues de la montre : « ${a.titre} » validée (+${a.xp} XP).`, { type: 'xp', picto: 'eclair', duree: 5200 });
     } else if (a.type === 'attribution') {
       const axe = a.axe ? M.axeDe(magasin.jeu, a.axe) : null;
       annoncer(`+${nombre(a.xp)} XP${axe ? ` ${axe.nom}` : ''}${a.motif ? ` — ${a.motif}` : ''}`, { type: 'xp', picto: 'eclair', duree: 5600 });
@@ -243,6 +242,7 @@ const actions = {
     if (!c.jour) return;
     const q = [...c.jour.quetes, ...c.jour.rattrapages, ...c.jour.bonus].find(x => x.id === el.dataset.id);
     if (!q) return;
+    if (q.id === magasin.jeu.regles.seance.quete && !q.faite) return ouvrirCalque(ficheSeance(c.date, q), { classe: 'calque-feuille' });
     const centre = centreDe(el.querySelector('.quete-coche'));
     const r = basculerQuete(c.date, q);
     if (!r) return;
@@ -393,6 +393,37 @@ document.addEventListener('click', e => {
   if (!el || el.disabled) return;
   const action = actions[el.dataset.action];
   if (action) action(el, e);
+});
+
+document.addEventListener('submit', e => {
+  const fs = e.target instanceof Element ? e.target.closest('[data-form="seance"]') : null;
+  if (!fs) return;
+  e.preventDefault();
+  const lu = lireSeance(fs);
+  if (lu.erreur) {
+    const erreur = fs.querySelector('.erreur');
+    erreur.textContent = lu.erreur;
+    erreur.hidden = false;
+    return;
+  }
+  const date = fs.dataset.date;
+  const jour = magasin.calcul && magasin.calcul.jours.get(date);
+  const quete = jour && [...jour.quetes, ...jour.rattrapages, ...jour.bonus].find(q => q.id === fs.dataset.id);
+  if (!quete || quete.faite) return fermerCalque(false);
+  const r = basculerQuete(date, quete, lu.extra);
+  fermerCalque(true);
+  if (!r) return;
+  sons.quete();
+  setTimeout(() => {
+    const coche = zones.vue.querySelector(`.quete[data-id="${CSS.escape(quete.id)}"] .quete-coche`);
+    if (coche) {
+      const p = centreDe(coche);
+      eclats(p.x, p.y, couleurAxe(quete.axe), 20);
+      flotteur(p.x, p.y - 20, `+${quete.xp} XP`);
+    }
+  }, 60);
+  annoncer(`Séance notée : ${lu.extra.s}.`, { duree: 3200 });
+  if (r.coffreOuvert) ouvertureCoffre();
 });
 
 document.addEventListener('submit', e => {

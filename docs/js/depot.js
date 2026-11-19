@@ -107,18 +107,6 @@ export class DepotGithub {
     return liste.filter(e => e.type === 'file').map(e => ({ nom: e.name, sha: e.sha }));
   }
 
-  /** Entrées d'un sous-dossier du dossier des données : [{ nom, sha, type }] ; [] s'il n'existe pas. */
-  async listerSous(sous) {
-    const ref = this.branche ? `?ref=${encodeURIComponent(this.branche)}` : '';
-    try {
-      const liste = await this.requete('GET', `/contents/${encoderChemin(`${this.dossier}/${sous}`)}${ref}`);
-      return Array.isArray(liste) ? liste.map(e => ({ nom: e.name, sha: e.sha, type: e.type })) : [];
-    } catch (e) {
-      if (e instanceof ErreurDepot && e.code === 'introuvable') return [];
-      throw e;
-    }
-  }
-
   /** Contenu d'un fichier à partir de son empreinte (sha) telle que donnée par lister(). */
   async lireBlob(sha) {
     const blob = await this.requete('GET', `/git/blobs/${encodeURIComponent(sha)}`);

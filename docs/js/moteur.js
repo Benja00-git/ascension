@@ -23,7 +23,7 @@ export const REGLES_DEFAUT = {
   rattrapage: { rang: 'E' },
   survie: { joursRates: 3, joursReussis: 3, quete: 'rapport' },
   heureBascule: 4,
-  forme: { quete: 'mouvement', minutes: 20 },
+  seance: { quete: 'mouvement', activites: null, durees: [15, 20, 30, 45, 60, 90] },
   joursModifiables: 7,
 };
 
@@ -130,6 +130,7 @@ function fusionRegles(defaut, propres) {
 export function normaliserJeu(brut) {
   const jeu = brut && typeof brut === 'object' ? brut : {};
   const regles = fusionRegles(REGLES_DEFAUT, jeu.regles);
+  if (!Array.isArray(regles.seance.activites) || !regles.seance.activites.length) regles.seance.activites = ACTIVITES_DEFAUT;
   const axes = Array.isArray(jeu.axes) && jeu.axes.length ? jeu.axes : AXES_DEFAUT;
   const quete = q => ({ ...q, xp: Number.isFinite(q.xp) ? q.xp : regles.xpRangs[q.rang] ?? 0 });
   return {
@@ -150,29 +151,53 @@ export function normaliserJeu(brut) {
   };
 }
 
-/* ───────────────────────── App Forme (Apple Watch) ───────────────────────── */
+/* ───────────────────────── Séances de sport ───────────────────────── */
 
-/** Lit un nombre écrit n'importe comment par Raccourcis : 34, "34", "34 min", "8 450", "1,5". */
+/** Activités proposées par défaut dans la feuille « Séance » (remplaçables par `regles.seance.activites`). */
+export const ACTIVITES_DEFAUT = [
+  { id: 'course', nom: 'Course', emoji: '🏃' },
+  { id: 'marche', nom: 'Marche', emoji: '🚶' },
+  { id: 'velo', nom: 'Vélo', emoji: '🚴' },
+  { id: 'renfo', nom: 'Renforcement', emoji: '🏋️' },
+  { id: 'natation', nom: 'Natation', emoji: '🏊' },
+  { id: 'mobilite', nom: 'Yoga · mobilité', emoji: '🧘' },
+  { id: 'raquette', nom: 'Raquette', emoji: '🎾' },
+  { id: 'collectif', nom: 'Sport collectif', emoji: '⚽' },
+];
+
+/** Lit un nombre écrit n'importe comment : 34, "34", "34 min", "8 450", "1,5". */
 export function lireNombre(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   const m = String(v ?? '').replace(/\s+/g, '').replace(',', '.').match(/-?\d+(\.\d+)?/);
   return m ? Number(m[0]) : 0;
 }
 
-/** Les jours où l'app Forme compte assez de minutes d'exercice pour valider la quête de mouvement,
- *  sauf si le joueur l'a déjà cochée ou décochée lui-même ce jour-là. */
-export function mouvementsAValider(jeu, journaux, forme, dates) {
-  const regle = jeu.regles.forme || {};
-  const seuil = lireNombre(regle.minutes) || 20;
-  const resultat = [];
-  for (const date of dates) {
-    const f = forme && forme[date];
-    if (!f || lireNombre(f.exercice_min) < seuil) continue;
-    const quete = quetesRegulieres(jeu, date).find(q => q.id === regle.quete);
-    if (!quete || entreesDuJour(journaux, date)[quete.id]) continue;
-    resultat.push({ date, quete, minutes: Math.round(lireNombre(f.exercice_min)) });
+/** 45 → « 45 min » ; 90 → « 1 h 30 » ; 60 → « 1 h ». */
+export function dureeMinutes(min) {
+  const m = Math.round(lireNombre(min));
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`;
+}
+
+/** Libellé d'une séance pour le journal : « 🏃 Course · 30 min ». */
+export function libelleSeance(jeu, act, min, libre) {
+  const a = (jeu.regles.seance.activites || []).find(x => x.id === act);
+  const nom = a ? `${a.emoji || ''} ${a.nom}`.trim() : `✳️ ${libre || 'Autre activité'}`;
+  return `${nom} · ${dureeMinutes(min)}`;
+}
+
+/** Les séances notées (quête de mouvement cochée avec une durée) entre deux dates incluses, dans l'ordre. */
+export function seancesEntre(jeu, journaux, de, a) {
+  const id = jeu.regles.seance.quete;
+  const liste = [];
+  for (const doc of Object.values(journaux)) {
+    for (const [date, entrees] of Object.entries((doc && doc.jours) || {})) {
+      if (date < de || date > a) continue;
+      const e = entrees && entrees[id];
+      if (estFaite(e) && lireNombre(e.min) > 0) liste.push({ date, act: e.act || 'autre', min: Math.round(lireNombre(e.min)), libelle: e.s || '' });
+    }
   }
-  return resultat;
+  return liste.sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
 }
 
 /* ───────────────────────── Explorations de l'arbre ───────────────────────── */

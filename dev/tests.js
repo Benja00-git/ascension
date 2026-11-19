@@ -229,15 +229,21 @@ test('Explorations : 2 à approfondir + 1 à explorer, tirage tournant, consomm�
   egal(vus.map(v => [v.id, v.integree]), [['a1', true]]);
 });
 
-test('App Forme : nombres tolérants et validation automatique du mouvement', () => {
+test('Séances : libellés, durées et séances de la semaine', () => {
   egal([34, '34', '34 min', '8 450', '1,5', '', null, 'abc'].map(M.lireNombre), [34, 34, 34, 8450, 1.5, 0, 0, 0]);
-  const forme = { '2026-11-16': { exercice_min: '32 min' }, '2026-11-17': { exercice_min: 12 }, '2026-11-18': { exercice_min: 45 } };
+  egal([20, 60, 90, 125].map(M.dureeMinutes), ['20 min', '1 h', '1 h 30', '2 h 05']);
+  egal(M.libelleSeance(JEU, 'course', 30), '🏃 Course · 30 min');
+  egal(M.libelleSeance(JEU, 'autre', 60, 'Escalade'), '✳️ Escalade · 1 h');
+  const jeu2 = M.normaliserJeu({ ...JEU, regles: { seance: { activites: [{ id: 'padel', nom: 'Padel', emoji: '🎾' }] } } });
+  egal([jeu2.regles.seance.activites.length, jeu2.regles.seance.quete, jeu2.regles.seance.durees.length], [1, 'mouvement', 6], 'activités réglables :');
   const j = {};
-  M.poserEntree(j, '2026-11-18', 'mouvement', M.entreeAnnulee(5)); // décochée à la main : on n'y touche pas
-  const r = M.mouvementsAValider(JEU, j, forme, ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19']);
-  egal(r.map(x => [x.date, x.quete.id, x.minutes]), [['2026-11-16', 'mouvement', 32]]);
-  const jeu2 = M.normaliserJeu({ ...JEU, regles: { forme: { minutes: 10 } } });
-  egal(M.mouvementsAValider(jeu2, {}, forme, ['2026-11-17']).length, 1, 'seuil réglable :');
+  M.poserEntree(j, '2026-11-16', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 1, { act: 'course', min: 30, s: '🏃 Course · 30 min' }));
+  M.poserEntree(j, '2026-11-18', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 2)); // cochée sans détail : ignorée
+  M.poserEntree(j, '2026-11-19', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 3, { act: 'velo', min: 45, s: '🚴 Vélo · 45 min' }));
+  M.poserEntree(j, '2026-11-17', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 4, { act: 'marche', min: 20 }));
+  M.poserEntree(j, '2026-11-17', 'mouvement', M.entreeAnnulee(5)); // décochée ensuite
+  M.poserEntree(j, '2026-11-24', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 6, { act: 'course', min: 25 }));
+  egal(M.seancesEntre(JEU, j, '2026-11-16', '2026-11-22').map(x => [x.date, x.act, x.min]), [['2026-11-16', 'course', 30], ['2026-11-19', 'velo', 45]]);
 });
 
 const ok = resultats.filter(r => r.ok).length;

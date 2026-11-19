@@ -1,7 +1,7 @@
 /* Écran « Quêtes » : le jour choisi, la zone de pénalité, le coffre, la semaine. */
 import * as M from '../moteur.js';
 import { magasin, hebdoModifiable } from '../magasin.js';
-import { h, icone, dessinCoffre, dateLongue, dateCourte, LETTRES_JOUR, NOMS_JOUR, pluriel, nombre } from '../ui.js';
+import { h, icone, dessinCoffre, dateLongue, dateCourte, LETTRES_JOUR, NOMS_JOUR, pluriel } from '../ui.js';
 
 /** Contexte partagé avec les actions : quel jour et quelle semaine sont affichés. */
 export function contexteQuetes(ui) {
@@ -52,7 +52,7 @@ export function carteQuete(q, { action, inactive = false, extra = '', ton = '' }
 
 /** La quête « arbre » ouvre le choix d'exploration quand le Système a préparé un réservoir pour la semaine. */
 function carteQuoti(q, c, inactive) {
-  if (q.faite && q.entree && q.entree.auto === 'forme') return carteQuete({ ...q, detail: q.entree.s }, { action: 'quete', inactive });
+  if (q.id === magasin.jeu.regles.seance.quete && q.faite && q.entree && q.entree.min) return carteQuete({ ...q, detail: q.entree.s }, { action: 'quete', inactive });
   if (q.id !== 'arbre') return carteQuete(q, { action: 'quete', inactive });
   const e = q.entree;
   if (q.faite && e && e.s) return carteQuete({ ...q, detail: `📖 ${e.s}` }, { action: 'quete', inactive });
@@ -127,31 +127,14 @@ function blocCoffre(c) {
   </section>`;
 }
 
-/** Durée telle qu'écrite par Raccourcis : « 31 min » et « 0:31:10 » restent tels quels ; un nombre seul est lu en secondes. */
-function duree(v) {
-  const texte = String(v ?? '').trim();
-  if (!/^\d+([.,]\d+)?$/.test(texte)) return texte;
-  const secondes = M.lireNombre(texte);
-  return secondes >= 3600 ? `${Math.floor(secondes / 3600)} h ${String(Math.round((secondes % 3600) / 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(secondes / 60))} min`;
-}
-
-function blocForme(c) {
-  const f = (magasin.forme || {})[c.date];
-  if (!f) return '';
-  const n = v => nombre(M.lireNombre(v));
-  const seances = Array.isArray(f.seances) ? f.seances.filter(s => s && (s.type || s.duree)) : [];
-  const seuil = M.lireNombre((magasin.jeu.regles.forme || {}).minutes) || 20;
-  const minutes = M.lireNombre(f.exercice_min);
-  return h`<section class="bloc bloc-forme">
-    <h2 class="bloc-titre">⌚ App Forme <span class="bloc-compte">${minutes >= seuil ? 'objectif atteint' : `objectif : ${seuil} min`}</span></h2>
-    <ul class="tuiles tuiles-3">
-      <li class="tuile"><span class="tuile-libelle">Exercice</span><span class="tuile-valeur">${n(f.exercice_min)} min</span></li>
-      <li class="tuile"><span class="tuile-libelle">Calories actives</span><span class="tuile-valeur">${n(f.calories)}</span></li>
-      <li class="tuile"><span class="tuile-libelle">Pas</span><span class="tuile-valeur">${n(f.pas)}</span></li>
-    </ul>
-    ${seances.length
-      ? h`<ul class="seances">${seances.map(s => h`<li><span>${String(s.type || 'Séance')}</span><strong>${duree(s.duree)}</strong></li>`)}</ul>`
-      : h`<p class="bloc-note">Aucune séance enregistrée par la montre ce jour-là.</p>`}
+/** Les séances de sport de la semaine affichée (rien tant qu'aucune n'est notée). */
+function blocSeances(c) {
+  const seances = M.seancesEntre(magasin.jeu, magasin.journaux, c.lundi, M.ajouterJours(c.lundi, 6));
+  if (!seances.length) return '';
+  const total = seances.reduce((n, x) => n + x.min, 0);
+  return h`<section class="bloc bloc-seances">
+    <h2 class="bloc-titre">Séances de la semaine <span class="bloc-compte">${pluriel(seances.length, 'séance')} · ${M.dureeMinutes(total)}</span></h2>
+    <ul class="seances">${seances.map(x => h`<li><span><em>${NOMS_JOUR[M.jourSemaine(x.date) - 1]}</em> ${x.libelle.replace(/ · [^·]+$/, '')}</span><strong>${M.dureeMinutes(x.min)}</strong></li>`)}</ul>
   </section>`;
 }
 
@@ -267,7 +250,7 @@ export function vueQuetes(ui) {
         ${penalite}
         ${bonus}
         ${blocCoffre(c)}
-        ${blocForme(c)}
+        ${blocSeances(c)}
       </div>
       <div class="colonne">
         ${blocHebdo(c)}
