@@ -1,6 +1,6 @@
 /* Ascension — service worker : met l'appli en cache pour qu'elle s'ouvre sans réseau.
    Les échanges avec GitHub ne passent jamais par ce cache. */
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const CACHE = `ascension-${VERSION}`;
 const FICHIERS = [
   './',

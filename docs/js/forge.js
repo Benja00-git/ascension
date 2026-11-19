@@ -27,14 +27,16 @@ const MODELES = {
   etirements: ['ischios', 'hanches', 'dos', 'pectoraux', 'quadriceps', 'fessiers', 'epaules', 'thoracique', 'mollets', 'lombaires', 'adducteurs', 'cou'],
 };
 const RETOUR_AU_CALME = { complet: ['ischios', 'pectoraux'], haut: ['pectoraux', 'epaules'], bas: ['quadriceps', 'fessiers'], gainage: ['dos', 'hanches'] };
-const PREFERENCE_MATERIEL = { salle: 4, halteres: 3, chaise: 3, elastique: 2, corps: 1 };
+const PREFERENCE_MATERIEL = { salle: 4, halteres: 3, chaise: 3, banc: 2, elastique: 2, corps: 1 };
 
 /** Le matériel réellement utilisable : le poids du corps toujours ; une salle a aussi des haltères et une station de dips. */
 export function disponible(materiel) {
   const d = new Set(['corps', ...(materiel || [])]);
-  if (d.has('salle')) ['halteres', 'chaise'].forEach(m => d.add(m));
+  if (d.has('salle')) ['halteres', 'chaise', 'banc'].forEach(m => d.add(m));
   return d;
 }
+/** Un exercice est faisable si son matériel et le matériel supplémentaire sont là. */
+export const utilisable = (e, dispo) => dispo.has(e.mat) && (e.avec || []).every(m => dispo.has(m)) && !(e.sauf || []).some(m => dispo.has(m));
 
 export function hasard(graine) {
   let s = graine >>> 0;
@@ -69,12 +71,12 @@ export function dureeEstimee(ex, cible) {
 export const dureePlan = plan => plan.reduce((n, p) => n + dureeEstimee(PAR_ID.get(p.id) || {}, p.cible), 0);
 
 function candidats(cle, dispo, deja, etirement) {
-  return EXERCICES.filter(e => dispo.has(e.mat) && !deja.has(e.id) && (etirement ? e.motif === 'etirement' && e.etire === cle : e.motif === cle));
+  return EXERCICES.filter(e => utilisable(e, dispo) && !deja.has(e.id) && (etirement ? e.motif === 'etirement' && e.etire === cle : e.motif === cle));
 }
 
 /** Les exercices déjà faits récemment pèsent plus : refaire les mêmes, c'est pouvoir progresser. */
 function poids(ex, type, recents) {
-  const p = TYPES.find(t => t.id === type && t.muscu) ? PREFERENCE_MATERIEL[ex.mat] || 1 : 1;
+  const p = TYPES.find(t => t.id === type && t.muscu) ? ((PREFERENCE_MATERIEL[ex.mat] || 1) + (ex.avec ? 0.5 : 0)) * (ex.base ? 1.5 : 1) : 1;
   return p * (recents.has(ex.id) ? 1.6 : 1);
 }
 
@@ -155,7 +157,7 @@ export function remplacer(plan, i, { type, objectif, materiel }) {
   const dispo = disponible(materiel);
   const autres = new Set(plan.filter((_, k) => k !== i).map(p => p.id));
   const etirement = actuel.motif === 'etirement';
-  const liste = EXERCICES.filter(e => dispo.has(e.mat) && !autres.has(e.id) && (etirement ? e.motif === 'etirement' && e.etire === actuel.etire : e.motif === actuel.motif));
+  const liste = EXERCICES.filter(e => utilisable(e, dispo) && !autres.has(e.id) && (etirement ? e.motif === 'etirement' && e.etire === actuel.etire : e.motif === actuel.motif));
   if (liste.length < 2) return null;
   const suivant = liste[(liste.findIndex(e => e.id === actuel.id) + 1) % liste.length];
   const copie = plan.slice();

@@ -253,7 +253,7 @@ test('Forge : bibliothèque cohérente', () => {
   for (const e of EXERCICES) {
     if (ids.has(e.id)) throw new Error(`id en double : ${e.id}`);
     ids.add(e.id);
-    if (!['corps', 'elastique', 'halteres', 'chaise', 'salle'].includes(e.mat)) throw new Error(`matériel inconnu : ${e.id}`);
+    if (![e.mat, ...(e.avec || [])].every(m => ['corps', 'elastique', 'halteres', 'chaise', 'banc', 'salle'].includes(m))) throw new Error(`matériel inconnu : ${e.id}`);
     if (!['reps', 'temps'].includes(e.mode) || !e.consigne || !e.zone) throw new Error(`fiche incomplète : ${e.id}`);
   }
 });
@@ -261,12 +261,12 @@ test('Forge : bibliothèque cohérente', () => {
 test('Forge : composition selon le matériel, le type et la durée', () => {
   for (const type of F.TYPES.map(t => t.id)) {
     for (const duree of F.DUREES) {
-      for (const materiel of [[], ['elastique'], ['halteres', 'chaise'], ['salle']]) {
+      for (const materiel of [[], ['elastique'], ['halteres', 'chaise'], ['halteres', 'chaise', 'banc'], ['banc'], ['salle']]) {
         const plan = F.composer({ type, objectif: 'muscle', materiel, duree, graine: duree });
         const dispo = F.disponible(materiel);
         const principaux = plan.filter(p => p.role === 'principal');
         if (principaux.length < 3) throw new Error(`${type} ${duree} min [${materiel}] : ${principaux.length} exercices`);
-        if (plan.some(p => !dispo.has(PAR_ID.get(p.id).mat))) throw new Error(`${type} : matériel absent utilisé`);
+        if (plan.some(p => !F.utilisable(PAR_ID.get(p.id), dispo))) throw new Error(`${type} : matériel absent utilisé`);
         if (new Set(plan.map(p => p.id)).size !== plan.length) throw new Error(`${type} : exercice en double`);
         const estime = F.dureePlan(plan) / 60;
         if (duree >= 30 && estime > duree * 1.15) throw new Error(`${type} ${duree} min [${materiel}] : ${Math.round(estime)} min estimées`);

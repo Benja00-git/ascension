@@ -6,6 +6,7 @@ import { h, icone, dateMoyenne, dateLongue, nombre, pluriel } from '../ui.js';
 
 const kg = v => `${String(Math.round(v * 100) / 100).replace('.', ',')} kg`;
 const MAT = Object.fromEntries([['corps', 'Poids du corps'], ...MATERIELS.map(m => [m.id, m.nom])]);
+const materielDe = e => [MAT[e.mat], ...(e.avec || []).map(m => (MAT[m] || m).toLowerCase())].join(' + ');
 
 export function chrono(ms) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -56,7 +57,7 @@ function ligneProposition(p, i, seances) {
   return h`<li class="prop">
     <div class="prop-corps">
       <strong>${ex.nom}</strong>
-      <span class="prop-meta">${ex.zone} · ${MAT[ex.mat]}</span>
+      <span class="prop-meta">${ex.zone} · ${materielDe(ex)}</span>
       <span class="prop-cible">${F.texteCible(p.cible, ex.uni)}</span>
       ${avant ? h`<span class="prop-avant">Dernière fois : ${F.texteSeries(avant.series)}${c && c.monter ? h` · <b>essaie ${kg(c.kg)}</b>` : ''}</span>` : ''}
     </div>
@@ -225,14 +226,14 @@ export function ficheAjout() {
   const deja = new Set(s.exos.map(e => e.id));
   const zones = new Map();
   for (const e of EXERCICES) {
-    if (!dispo.has(e.mat) || deja.has(e.id) || e.motif === 'echauffement') continue;
+    if (!F.utilisable(e, dispo) || deja.has(e.id) || e.motif === 'echauffement') continue;
     if (!zones.has(e.zone)) zones.set(e.zone, []);
     zones.get(e.zone).push(e);
   }
   return h`<div class="feuille fenetre forge-ajout" role="dialog" aria-modal="true" aria-labelledby="fa-titre">
     <button type="button" class="bouton-rond feuille-fermer" data-action="calque-fermer" aria-label="Fermer">${icone('fermer')}</button>
     <h2 id="fa-titre" class="fiche-titre">Ajouter un exercice</h2>
-    ${[...zones.entries()].map(([zone, liste]) => h`<p class="prop-groupe">${zone}</p><ul class="ajouts">${liste.map(e => h`<li><button class="ajout" data-action="forge-ajouter" data-id="${e.id}"><strong>${e.nom}</strong><span>${MAT[e.mat]}</span></button></li>`)}</ul>`)}
+    ${[...zones.entries()].map(([zone, liste]) => h`<p class="prop-groupe">${zone}</p><ul class="ajouts">${liste.map(e => h`<li><button class="ajout" data-action="forge-ajouter" data-id="${e.id}"><strong>${e.nom}</strong><span>${materielDe(e)}</span></button></li>`)}</ul>`)}
   </div>`;
 }
 
