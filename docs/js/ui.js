@@ -59,6 +59,7 @@ export function ilYA(horodatage) {
 const TRACES = {
   quetes: '<path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M12 7.8v5.4"/><path d="M12 16.2h.01"/>',
   statut: '<rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="12" cy="10.3" r="2.6"/><path d="M7.6 17c.9-2 2.5-3.100 4.400-3.100s3.500 1.100 4.400 3.100"/>',
+  forge: '<path d="M6.500 7v10"/><path d="M17.500 7v10"/><path d="M3.500 9.500v5"/><path d="M20.500 9.500v5"/><path d="M6.500 12h11"/>',
   donjons: '<path d="M4 21V9.500h2.200V5h3v3h1.800V5h2v3h1.800V5h3v4.500H20V21z"/><path d="M10 21v-4.500a2 2 0 0 1 4 0V21"/>',
   arbre: '<path d="M12 21v-7"/><path d="M12 14c-4.100 0-7-2.500-7-5.800C5 5 7.900 2.800 12 2.800S19 5 19 8.200c0 3.300-2.900 5.800-7 5.800z"/><path d="m12 11-2.300-2.300"/><path d="m12 13.500 2.800-2.800"/>',
   reglages: '<path d="M4 7h9"/><path d="M19 7h1"/><path d="M4 17h1"/><path d="M11 17h9"/><circle cx="16" cy="7" r="2.400"/><circle cx="8" cy="17" r="2.400"/>',

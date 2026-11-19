@@ -2,15 +2,18 @@
  *
  * Qui écrit quoi dans le dossier des données :
  *   - le Système (Claude, côté PC)  → jeu.json, arbre.json   (l'appli ne fait que les lire)
- *   - l'appli (PC et iPhone)        → journal-AAAA-MM.json, etat.json
+ *   - l'appli (PC et iPhone)        → journal-AAAA-MM.json, etat.json, entrainements-AAAA-MM.json (carnet de la Forge)
  * Chaque fichier n'a donc qu'un côté qui écrit : pas de conflit Git avec la synchro du vault.
  */
 import * as M from './moteur.js';
 import { DepotGithub, ErreurDepot, API_GITHUB } from './depot.js';
+import * as F from './forge.js';
 
 const CLE_CONFIG = 'ascension.config';
 const CLE_VU = 'ascension.vu';
 const cleDonnees = mode => (mode === 'demo' ? 'ascension.demo.donnees' : 'ascension.git.donnees');
+const cleForge = mode => `ascension.${mode === 'demo' ? 'demo' : 'git'}.forge`;
+const FORGE_DEFAUT = { prefs: { type: 'complet', objectif: 'muscle', materiel: [], duree: 45 }, proposition: null, encours: null };
 
 const lire = (cle, defaut) => {
   try {
@@ -37,6 +40,8 @@ export const magasin = {
   arbre: null,
   etat: M.etatVide(),
   journaux: {},
+  entrainements: {},
+  forge: JSON.parse(JSON.stringify(FORGE_DEFAUT)),
   shas: {},
   sales: new Set(),
   annonces: {},
@@ -76,8 +81,10 @@ const jjmm = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const NOM_ETAT = 'etat.json';
 const nomJournal = mois => `journal-${mois}.json`;
 const moisDuNom = nom => (/^journal-(\d{4}-\d{2})\.json$/.exec(nom) || [])[1] || null;
+const nomEntrainements = mois => `entrainements-${mois}.json`;
+const moisEntrainements = nom => (/^entrainements-(\d{4}-\d{2})\.json$/.exec(nom) || [])[1] || null;
 const estSysteme = nom => nom === 'jeu.json' || nom === 'arbre.json';
-const estNotre = nom => nom === NOM_ETAT || !!moisDuNom(nom);
+const estNotre = nom => nom === NOM_ETAT || !!moisDuNom(nom) || !!moisEntrainements(nom);
 
 const trier = objet => Object.fromEntries(Object.keys(objet || {}).sort().map(cle => [cle, objet[cle]]));
 
@@ -101,7 +108,17 @@ function partieSaisie(etat) {
 function serialiserEtat(etat) {
   return JSON.stringify({ format: etat.format || 'ascension/etat@1', ...partieSaisie(etat), resume: etat.resume || null }, null, 1) + '\n';
 }
+/** Une séance par ligne, triées : lisible par le Système, identique d'un appareil à l'autre. */
+function serialiserEntrainements(doc) {
+  const ids = Object.keys(doc.seances || {}).sort();
+  const lignes = ['{', ` "format": ${JSON.stringify(doc.format || 'ascension/entrainements@1')},`, ` "mois": ${JSON.stringify(doc.mois)},`, ' "seances": {'];
+  ids.forEach((id, i) => lignes.push(`  ${JSON.stringify(id)}: ${JSON.stringify(doc.seances[id])}${i < ids.length - 1 ? ',' : ''}`));
+  lignes.push(' }', '}');
+  return lignes.join('\n') + '\n';
+}
 function serialiser(nom) {
+  const me = moisEntrainements(nom);
+  if (me) return serialiserEntrainements(magasin.entrainements[me] || F.entrainementsVides(me));
   const mois = moisDuNom(nom);
   return mois ? serialiserJournal(magasin.journaux[mois] || M.journalVide(mois)) : serialiserEtat(magasin.etat);
 }
@@ -118,6 +135,7 @@ function sauver() {
     arbre: magasin.arbre,
     etat: magasin.etat,
     journaux: magasin.journaux,
+    entrainements: magasin.entrainements,
     shas: magasin.shas,
     sales: [...magasin.sales],
     annonces: magasin.annonces,
@@ -131,6 +149,9 @@ function charger() {
   magasin.arbre = (d && d.arbre) || null;
   magasin.etat = (d && d.etat) || M.etatVide();
   magasin.journaux = (d && d.journaux) || {};
+  magasin.entrainements = (d && d.entrainements) || {};
+  const f = lire(cleForge(magasin.config.mode), null);
+  magasin.forge = { ...JSON.parse(JSON.stringify(FORGE_DEFAUT)), ...(f || {}) };
   magasin.shas = (d && d.shas) || {};
   magasin.sales = new Set((d && d.sales) || []);
   magasin.annonces = (d && d.annonces) || {};
@@ -299,6 +320,42 @@ export function etageFait(donjonId, etageId) {
   return M.estFaite(g[etageId]) ? g[etageId] : null;
 }
 
+/* ───────────────────────── Forge (carnet d'entraînement) ───────────────────────── */
+
+/** État local de la Forge (préférences, proposition, séance en cours) : propre à l'appareil, jamais envoyé. */
+export function sauverForge() {
+  ecrire(cleForge(magasin.config.mode), magasin.forge);
+}
+export function carnetForge() {
+  return F.carnet(magasin.entrainements);
+}
+
+/** Inscrit une séance terminée dans le carnet du mois (entrainements-AAAA-MM.json). */
+export function enregistrerSeanceForge(seance) {
+  const mois = seance.date.slice(0, 7);
+  const doc = magasin.entrainements[mois] || (magasin.entrainements[mois] = F.entrainementsVides(mois));
+  doc.seances[seance.id] = seance;
+  marquerSale(nomEntrainements(mois), `🏋️ ${F.typeDe(seance.type).nom} · ${seance.exercices.length} exercices · ${seance.duree} min (${jjmm(seance.date)})`);
+  sauver();
+  planifierSync(2500);
+  notifier();
+}
+
+/** Retire une séance du carnet (gardée dans le fichier avec « supprimee », pour que la suppression se propage). */
+export function supprimerSeanceForge(id) {
+  for (const [mois, doc] of Object.entries(magasin.entrainements)) {
+    const s = doc.seances && doc.seances[id];
+    if (!s) continue;
+    doc.seances[id] = { id, date: s.date, debut: s.debut, supprimee: true, t: horodatage() };
+    marquerSale(nomEntrainements(mois), `🗑️ Séance du ${jjmm(s.date)} retirée`);
+    sauver();
+    planifierSync(2500);
+    notifier();
+    return true;
+  }
+  return false;
+}
+
 /* ───────────────────────── Synchronisation ───────────────────────── */
 
 let enCours = false;
@@ -335,6 +392,14 @@ function integrer(nom, texte, sha) {
     const pareil = JSON.stringify(partieSaisie(fusion)) === JSON.stringify(partieSaisie(distant));
     fusion.resume = distant.resume || null; // recalculé ensuite : s'il diffère, le fichier redevient « à envoyer »
     magasin.etat = fusion;
+    if (pareil) magasin.sales.delete(nom);
+    else marquerSale(nom);
+  } else if (moisEntrainements(nom)) {
+    const mois = moisEntrainements(nom);
+    const fusion = F.fusionnerEntrainements(magasin.entrainements[mois], distant);
+    if (!fusion.mois) fusion.mois = mois;
+    const pareil = serialiserEntrainements(fusion) === serialiserEntrainements({ ...distant, mois: distant.mois || mois });
+    magasin.entrainements[mois] = fusion;
     if (pareil) magasin.sales.delete(nom);
     else marquerSale(nom);
   } else {
@@ -481,6 +546,8 @@ export function deconnecter() {
   try {
     localStorage.removeItem(cleDonnees('git'));
     localStorage.removeItem(cleDonnees('demo'));
+    localStorage.removeItem(cleForge('git'));
+    localStorage.removeItem(cleForge('demo'));
   } catch (e) {
     /* rien */
   }
@@ -511,6 +578,7 @@ export async function passerEnDemo({ neuf = false } = {}) {
   if (neuf) {
     try {
       localStorage.removeItem(cleDonnees('demo'));
+      localStorage.removeItem(cleForge('demo'));
     } catch (e) {
       /* rien */
     }
@@ -544,6 +612,18 @@ export async function passerEnDemo({ neuf = false } = {}) {
     magasin.arbre = arbre;
     magasin.etat = M.etatVide();
     magasin.journaux = {};
+    magasin.entrainements = {};
+    // Deux séances de Forge passées, pour que le carnet ne soit pas vide.
+    for (const [i, recul] of [10, 4].entries()) {
+      const date = M.ajouterJours(jour, -recul);
+      const debut = horodatage() - recul * 86400000;
+      const reglages = { type: 'complet', objectif: 'muscle', materiel: ['halteres', 'elastique'], duree: 45 };
+      const plan = F.composer({ ...reglages, seances: F.carnet(magasin.entrainements), graine: 7 });
+      const encours = F.lancer(plan, { id: `demo-${date}`, date, debut, ...reglages }, F.carnet(magasin.entrainements));
+      for (const e of encours.exos) for (const x of e.series) Object.assign(x, { ok: true, kg: x.kg === undefined ? undefined : x.kg || 8 + 2 * i });
+      const seance = F.cloturer(encours, debut + 44 * 60000, debut);
+      (magasin.entrainements[date.slice(0, 7)] || (magasin.entrainements[date.slice(0, 7)] = F.entrainementsVides(date.slice(0, 7)))).seances[seance.id] = seance;
+    }
 
     // Un passé plausible : la plupart des quêtes faites, deux jours creux.
     const hasard = aleatoire(20261116);

@@ -416,7 +416,7 @@ code {
 }
 .nav-liste {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
 }
 .nav-lien {
   position: relative;
@@ -3016,4 +3016,342 @@ code {
   font-weight: 600;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* ───────────────────────── Forge ───────────────────────── */
+
+.bouton-large {
+  width: 100%;
+  justify-content: center;
+}
+.bouton-texte {
+  padding: 8px 6px;
+  border: 0;
+  background: none;
+  color: var(--lueur);
+  font: 600 13.5px var(--police);
+  cursor: pointer;
+}
+.bouton-texte-discret {
+  color: var(--encre-3);
+  margin-left: auto;
+}
+.groupe {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.groupe .choix-legende em {
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.jetons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jeton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--trait-fort);
+  background: rgba(17, 27, 54, 0.75);
+  color: var(--encre-2);
+  font: 600 14px var(--police);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.jeton small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--encre-3);
+}
+.jeton.est-actif {
+  border-color: var(--lueur);
+  background: linear-gradient(180deg, rgba(92, 200, 255, 0.34), rgba(92, 200, 255, 0.18));
+  box-shadow: 0 0 0 1px var(--lueur), 0 0 16px rgba(92, 200, 255, 0.35);
+  color: #fff;
+}
+.jeton.est-actif small {
+  color: var(--encre-2);
+}
+.prop-groupe {
+  margin: 10px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--encre-3);
+}
+.props,
+.ajouts {
+  display: grid;
+}
+.prop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--trait);
+}
+.prop:last-child {
+  border-bottom: 0;
+}
+.prop-corps {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.prop-corps strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+.prop-meta,
+.prop-avant {
+  font-size: 12.5px;
+  color: var(--encre-3);
+}
+.prop-cible {
+  font-size: 13px;
+  color: var(--encre-2);
+  font-variant-numeric: tabular-nums;
+}
+.prop-avant b,
+.exo-cible b {
+  color: var(--or);
+  font-weight: 650;
+}
+.prop-changer {
+  flex: none;
+}
+.forge-tete {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--trait);
+  background: rgba(8, 14, 30, 0.94);
+  backdrop-filter: blur(10px);
+}
+.forge-tete .jauge {
+  grid-column: 1 / -1;
+}
+.forge-titre {
+  font-size: 18px;
+  font-weight: 700;
+}
+.forge-compteurs {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+}
+.forge-compteurs strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lueur);
+}
+.forge-compteurs span {
+  font-size: 12px;
+  color: var(--encre-3);
+}
+.exos {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+.exo.est-fini {
+  border-color: rgba(92, 200, 255, 0.45);
+}
+.exo-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 10px;
+}
+.exo-role {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--encre-3);
+}
+.exo-nom {
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.exo-cible {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--encre-2);
+}
+.exo-consigne {
+  margin: 6px 0 4px;
+  font-size: 13px;
+  color: var(--encre-2);
+}
+.exo-consigne summary {
+  cursor: pointer;
+  color: var(--lueur);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.exo-consigne p {
+  margin-top: 4px;
+}
+.series {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+.serie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.serie-n {
+  flex: none;
+  width: 24px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--encre-3);
+  font-variant-numeric: tabular-nums;
+}
+.serie-champ {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.serie-champ input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 34px 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--trait-fort);
+  background: rgba(4, 8, 18, 0.7);
+  color: var(--encre);
+  font: 650 17px var(--police);
+  font-variant-numeric: tabular-nums;
+}
+.serie-champ.est-long input {
+  padding-right: 66px;
+}
+.serie-champ input:focus {
+  outline: 2px solid var(--lueur);
+  outline-offset: 1px;
+}
+.serie-champ span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--encre-3);
+  pointer-events: none;
+}
+.serie-ok {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--trait-fort);
+  background: rgba(17, 27, 54, 0.75);
+  color: var(--encre-3);
+  cursor: pointer;
+}
+.serie-ok .icone {
+  width: 22px;
+  height: 22px;
+}
+.serie.est-faite .serie-ok {
+  border-color: var(--lueur);
+  background: linear-gradient(180deg, rgba(92, 200, 255, 0.5), rgba(92, 200, 255, 0.25));
+  color: #fff;
+  box-shadow: 0 0 14px rgba(92, 200, 255, 0.35);
+}
+.serie.est-faite input {
+  border-color: rgba(92, 200, 255, 0.35);
+  color: var(--encre-2);
+}
+.exo-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.forge-fin {
+  margin: 14px 0 90px;
+}
+.minuteur {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  z-index: 20;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(480px, calc(100% - 24px));
+  padding: 10px 12px 10px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--lueur);
+  background: rgba(6, 12, 28, 0.96);
+  box-shadow: 0 0 24px rgba(92, 200, 255, 0.3);
+}
+.minuteur-libelle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--encre-3);
+}
+.minuteur-temps {
+  flex: 1;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--lueur);
+}
+.forge-ajout {
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+.ajout {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--trait);
+  background: none;
+  color: var(--encre);
+  font: 14.5px var(--police);
+  text-align: left;
+  cursor: pointer;
+}
+.ajout span {
+  flex: none;
+  font-size: 12px;
+  color: var(--encre-3);
+}
+.forge-fiche .seances strong {
+  white-space: normal;
+  text-align: right;
+}
+@media (min-width: 960px) {
+  .minuteur {
+    left: calc(50% + 118px);
+    bottom: 24px;
+  }
 }

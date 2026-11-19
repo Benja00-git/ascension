@@ -9,6 +9,7 @@ dépôt GitHub privé (dossier des données)
  ├─ jeu.json            ← écrit par le maître du jeu : règles, quêtes, donjons, attributions d'XP
  ├─ arbre.json          ← écrit par le maître du jeu : nœuds de connaissance et leur niveau
  ├─ journal-AAAA-MM.json ← écrit par l'appli : quêtes cochées jour par jour
+ ├─ entrainements-AAAA-MM.json ← écrit par l'appli : carnet de la Forge (séances, séries, charges)
  └─ etat.json           ← écrit par l'appli : hebdomadaires, étages, succès, résumé
 ```
 

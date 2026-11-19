@@ -18,6 +18,10 @@ import {
   rafraichir,
   viderCacheLocal,
   enAttente,
+  sauverForge,
+  carnetForge,
+  enregistrerSeanceForge,
+  supprimerSeanceForge,
 } from './magasin.js';
 import { API_GITHUB } from './depot.js';
 import { h, icone, embleme, nombre, pluriel, annoncer, flotteur, eclats, centreDe, ouvrirCalque, fermerCalque, calqueOuvert, confirmer, installerBulles, reglerAnimations } from './ui.js';
@@ -28,6 +32,9 @@ import { vueDonjons } from './vues/donjons.js';
 import { vueArbre, ficheNoeud } from './vues/arbre.js';
 import { ficheExploration, optionsExploration } from './vues/exploration.js';
 import { ficheSeance, lireSeance } from './vues/seance.js';
+import { vueForge, ficheSeanceForge, ficheAjout, ficheBilan, minuteur, chrono } from './vues/forge.js';
+import * as F from './forge.js';
+import { PAR_ID } from './exercices.js';
 import { vueReglages, vueAccueil, vueAttente, libelleSync, SIGLE } from './vues/reglages.js';
 
 const ui = {
@@ -40,11 +47,12 @@ const ui = {
 const ONGLETS = [
   ['quetes', 'Quêtes'],
   ['statut', 'Statut'],
+  ['forge', 'Forge'],
   ['donjons', 'Donjons'],
   ['arbre', 'Arbre'],
   ['reglages', 'Réglages'],
 ];
-const VUES = { quetes: vueQuetes, statut: vueStatut, donjons: vueDonjons, arbre: vueArbre, reglages: vueReglages };
+const VUES = { quetes: vueQuetes, statut: vueStatut, forge: vueForge, donjons: vueDonjons, arbre: vueArbre, reglages: vueReglages };
 
 const zones = {
   app: document.getElementById('app'),
@@ -377,6 +385,169 @@ const actions = {
     if (!viderCacheLocal()) annoncer('Des coches attendent encore d’être envoyées : synchronise d’abord.', { duree: 3600 });
     else annoncer('Copie locale effacée : rechargement depuis le dépôt.', { duree: 2600 });
   },
+  /* ── Forge ── */
+  'forge-pref'(el) {
+    const cle = el.dataset.cle;
+    magasin.forge.prefs[cle] = cle === 'duree' ? Number(el.dataset.val) : el.dataset.val;
+    sauverForge();
+    rendre();
+  },
+  'forge-materiel'(el) {
+    const m = el.dataset.val;
+    const liste = magasin.forge.prefs.materiel;
+    magasin.forge.prefs.materiel = liste.includes(m) ? liste.filter(x => x !== m) : [...liste, m];
+    sauverForge();
+    rendre();
+  },
+  'forge-proposer'() {
+    const p = magasin.forge.prefs;
+    const graine = ((magasin.forge.proposition && magasin.forge.proposition.graine) || Date.now() % 100000) + 7919;
+    const plan = F.composer({ ...p, seances: carnetForge(), graine });
+    magasin.forge.proposition = { ...p, materiel: [...p.materiel], objectif: F.typeDe(p.type).muscu ? p.objectif : null, plan, graine };
+    sauverForge();
+    rendre();
+    sons.touche();
+  },
+  'forge-changer'(el) {
+    const pr = magasin.forge.proposition;
+    const plan = pr && F.remplacer(pr.plan, Number(el.dataset.i), pr);
+    if (!plan) return annoncer('Pas d’autre exercice possible ici avec ce matériel.', { duree: 2600 });
+    pr.plan = plan;
+    sauverForge();
+    rendre();
+  },
+  'forge-commencer'() {
+    const pr = magasin.forge.proposition;
+    if (!pr) return;
+    const debut = Date.now();
+    magasin.forge.encours = F.lancer(pr.plan, { id: `${aujourdhui()}-${debut.toString(36)}`, date: aujourdhui(), debut, type: pr.type, objectif: pr.objectif, materiel: pr.materiel, duree: pr.duree }, carnetForge());
+    magasin.forge.proposition = null;
+    sauverForge();
+    garderEcran(true);
+    window.scrollTo(0, 0);
+    rendre(true);
+    sons.hebdo();
+  },
+  'forge-serie'(el) {
+    const s = magasin.forge.encours;
+    const e = s && s.exos[Number(el.dataset.i)];
+    const x = e && e.series[Number(el.dataset.k)];
+    if (!x) return;
+    lireChamps(el.closest('.serie'), x);
+    x.ok = !x.ok;
+    if (x.ok) {
+      // La charge saisie vaut aussi pour les séries suivantes encore vides.
+      for (const y of e.series.slice(Number(el.dataset.k) + 1)) if (!y.ok && y.kg === '' && x.kg) y.kg = x.kg;
+      const repos = e.cible.repos || 0;
+      const derniere = s.exos.every(ex => ex.series.every(y => y.ok));
+      s.repos = repos && !derniere ? { fin: Date.now() + repos * 1000 } : null;
+      const p = centreDe(el);
+      eclats(p.x, p.y, OR, 10);
+      sons.quete();
+    } else {
+      sons.annule();
+    }
+    sauverForge();
+    rendre(true);
+  },
+  'forge-serie-plus'(el) {
+    const e = magasin.forge.encours.exos[Number(el.dataset.i)];
+    e.series.push(F.serieDePlus(e));
+    sauverForge();
+    rendre(true);
+  },
+  'forge-serie-moins'(el) {
+    const e = magasin.forge.encours.exos[Number(el.dataset.i)];
+    if (e.series.length > 1) e.series.pop();
+    sauverForge();
+    rendre(true);
+  },
+  async 'forge-retirer'(el) {
+    const s = magasin.forge.encours;
+    const i = Number(el.dataset.i);
+    const ex = PAR_ID_FORGE(s.exos[i].id);
+    if (s.exos[i].series.some(x => x.ok) && !(await confirmer({ titre: 'Retirer cet exercice ?', texte: `Les séries déjà faites de « ${ex.nom} » ne seront pas enregistrées.`, oui: 'Retirer', picto: 'alerte' }))) return;
+    s.exos.splice(i, 1);
+    sauverForge();
+    rendre(true);
+  },
+  'forge-ajout'() {
+    ouvrirCalque(ficheAjout(), { classe: 'calque-feuille' });
+  },
+  'forge-ajouter'(el) {
+    const s = magasin.forge.encours;
+    const ex = PAR_ID_FORGE(el.dataset.id);
+    if (!s || !ex) return;
+    const [exo] = F.lancer([{ id: ex.id, role: 'ajout', cible: F.prescription(ex, s.type, s.objectif) }], s, carnetForge()).exos;
+    s.exos.push(exo);
+    sauverForge();
+    fermerCalque(false);
+    rendre(true);
+    setTimeout(() => document.getElementById(`exo-${s.exos.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  },
+  'forge-repos-plus'() {
+    const r = magasin.forge.encours && magasin.forge.encours.repos;
+    if (!r) return;
+    r.fin += 15000;
+    sauverForge();
+    rendre(true);
+  },
+  'forge-repos-fin'() {
+    if (!magasin.forge.encours) return;
+    magasin.forge.encours.repos = null;
+    sauverForge();
+    rendre(true);
+  },
+  async 'forge-abandonner'() {
+    const ok = await confirmer({ titre: 'Abandonner la séance ?', texte: 'Rien ne sera enregistré dans le carnet.', oui: 'Abandonner', non: 'Continuer la séance', picto: 'alerte' });
+    if (!ok) return;
+    magasin.forge.encours = null;
+    sauverForge();
+    garderEcran(false);
+    rendre(true);
+  },
+  async 'forge-terminer'() {
+    const s = magasin.forge.encours;
+    if (!s) return;
+    const faites = s.exos.reduce((n, e) => n + e.series.filter(x => x.ok).length, 0);
+    if (!faites) return annoncer('Aucune série validée : coche au moins une série, ou abandonne la séance.', { duree: 3600 });
+    const restent = s.exos.reduce((n, e) => n + e.series.filter(x => !x.ok).length, 0);
+    const ok = await confirmer({
+      titre: 'Terminer la séance ?',
+      texte: restent ? `${pluriel(restent, 'série non validée', 'séries non validées')} ne ${restent > 1 ? 'seront' : 'sera'} pas enregistrée${restent > 1 ? 's' : ''}.` : 'Toutes les séries sont validées.',
+      oui: 'Terminer',
+      picto: 'trophee',
+    });
+    if (!ok) return;
+    const avant = carnetForge();
+    const seance = F.cloturer(s, Date.now(), Date.now());
+    const battus = F.recordsBattus(seance, avant);
+    enregistrerSeanceForge(seance);
+    magasin.forge.encours = null;
+    sauverForge();
+    garderEcran(false);
+    // La séance valide la quête de mouvement du jour.
+    const id = magasin.jeu.regles.seance.quete;
+    const jour = magasin.calcul && magasin.calcul.jours.get(seance.date);
+    const quete = jour && [...jour.quetes, ...jour.bonus].find(q => q.id === id);
+    const act = seance.type === 'etirements' ? 'mobilite' : 'renfo';
+    const r = quete && !quete.faite ? basculerQuete(seance.date, quete, { act, min: seance.duree, s: M.libelleSeance(magasin.jeu, act, seance.duree), forge: seance.id }) : null;
+    rendre(true);
+    sons.coffre();
+    await ouvrirCalque(ficheBilan(seance, battus), { classe: 'calque-centre' });
+    if (r) annoncer(`« ${quete.titre} » validée par la séance (+${quete.xp} XP).`, { type: 'xp', picto: 'eclair', duree: 4200 });
+    if (r && r.coffreOuvert) ouvertureCoffre();
+  },
+  'forge-fiche'(el) {
+    const fiche = ficheSeanceForge(el.dataset.id);
+    if (fiche) ouvrirCalque(fiche, { classe: 'calque-feuille' });
+  },
+  async 'forge-supprimer'(el) {
+    const id = el.dataset.id;
+    fermerCalque(false);
+    const ok = await confirmer({ titre: 'Supprimer cette séance ?', texte: 'Elle disparaît du carnet sur tous tes appareils. L’XP de la quête déjà validée reste.', oui: 'Supprimer', picto: 'alerte' });
+    if (ok && supprimerSeanceForge(id)) annoncer('Séance retirée du carnet.', { duree: 2400 });
+  },
   'calque-fermer'() {
     fermerCalque(false);
   },
@@ -507,10 +678,66 @@ document.addEventListener('keydown', e => {
   if (Number.isInteger(i) && ONGLETS[i] && magasin.calcul) allerA(ONGLETS[i][0]);
 });
 
+/* ───────────────────────── Forge : saisie, minuteur, écran allumé ───────────────────────── */
+
+const PAR_ID_FORGE = id => PAR_ID.get(id);
+
+function lireChamps(ligne, x) {
+  if (!ligne) return;
+  for (const champ of ligne.querySelectorAll('input[data-forge-serie]')) x[champ.name] = champ.value.trim();
+}
+
+document.addEventListener('input', e => {
+  const champ = e.target;
+  if (!(champ instanceof HTMLInputElement) || !champ.hasAttribute('data-forge-serie')) return;
+  const s = magasin.forge.encours;
+  const x = s && s.exos[Number(champ.dataset.i)] && s.exos[Number(champ.dataset.i)].series[Number(champ.dataset.k)];
+  if (!x) return;
+  x[champ.name] = champ.value.trim();
+  sauverForge();
+});
+document.addEventListener('focusin', e => {
+  if (e.target instanceof HTMLInputElement && e.target.hasAttribute('data-forge-serie')) e.target.select();
+});
+
+let verrou = null;
+async function garderEcran(oui) {
+  try {
+    if (oui && 'wakeLock' in navigator && document.visibilityState === 'visible') verrou = await navigator.wakeLock.request('screen');
+    else if (!oui && verrou) {
+      await verrou.release();
+      verrou = null;
+    }
+  } catch (e) {
+    /* pas de verrou d'écran : sans importance */
+  }
+}
+
+setInterval(() => {
+  const s = magasin.forge && magasin.forge.encours;
+  if (!s || ui.onglet !== 'forge' || document.visibilityState !== 'visible') return;
+  const el = zones.vue.querySelector('[data-chrono]');
+  if (el) el.textContent = chrono(Date.now() - Number(el.dataset.chrono));
+  const m = zones.vue.querySelector('[data-minuteur]');
+  if (s.repos && s.repos.fin) {
+    const reste = s.repos.fin - Date.now();
+    if (reste <= 0) {
+      s.repos = null;
+      sauverForge();
+      sons.hebdo();
+      if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+      annoncer('Repos terminé : série suivante.', { duree: 2200 });
+      rendre(true);
+    } else if (m) m.textContent = chrono(reste);
+  }
+}, 1000);
+
 /* ───────────────────────── Vie de l'appli ───────────────────────── */
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') rafraichir();
+  if (document.visibilityState !== 'visible') return;
+  rafraichir();
+  if (magasin.forge && magasin.forge.encours) garderEcran(true);
 });
 window.addEventListener('online', () => synchroniser());
 window.addEventListener('pageshow', e => {

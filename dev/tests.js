@@ -1,5 +1,7 @@
 /* Tests du moteur de jeu — à ouvrir dans le navigateur : http://localhost:8765/dev/tests.html */
 import * as M from '../docs/js/moteur.js';
+import * as F from '../docs/js/forge.js';
+import { EXERCICES, PAR_ID } from '../docs/js/exercices.js';
 
 const resultats = [];
 function test(nom, fn) {
@@ -244,6 +246,69 @@ test('Séances : libellés, durées et séances de la semaine', () => {
   M.poserEntree(j, '2026-11-17', 'mouvement', M.entreeAnnulee(5)); // décochée ensuite
   M.poserEntree(j, '2026-11-24', 'mouvement', M.entreeFaite(JEU.quotidiennes[0], 6, { act: 'course', min: 25 }));
   egal(M.seancesEntre(JEU, j, '2026-11-16', '2026-11-22').map(x => [x.date, x.act, x.min]), [['2026-11-16', 'course', 30], ['2026-11-19', 'velo', 45]]);
+});
+
+test('Forge : bibliothèque cohérente', () => {
+  const ids = new Set();
+  for (const e of EXERCICES) {
+    if (ids.has(e.id)) throw new Error(`id en double : ${e.id}`);
+    ids.add(e.id);
+    if (!['corps', 'elastique', 'halteres', 'chaise', 'salle'].includes(e.mat)) throw new Error(`matériel inconnu : ${e.id}`);
+    if (!['reps', 'temps'].includes(e.mode) || !e.consigne || !e.zone) throw new Error(`fiche incomplète : ${e.id}`);
+  }
+});
+
+test('Forge : composition selon le matériel, le type et la durée', () => {
+  for (const type of F.TYPES.map(t => t.id)) {
+    for (const duree of F.DUREES) {
+      for (const materiel of [[], ['elastique'], ['halteres', 'chaise'], ['salle']]) {
+        const plan = F.composer({ type, objectif: 'muscle', materiel, duree, graine: duree });
+        const dispo = F.disponible(materiel);
+        const principaux = plan.filter(p => p.role === 'principal');
+        if (principaux.length < 3) throw new Error(`${type} ${duree} min [${materiel}] : ${principaux.length} exercices`);
+        if (plan.some(p => !dispo.has(PAR_ID.get(p.id).mat))) throw new Error(`${type} : matériel absent utilisé`);
+        if (new Set(plan.map(p => p.id)).size !== plan.length) throw new Error(`${type} : exercice en double`);
+        const estime = F.dureePlan(plan) / 60;
+        if (duree >= 30 && estime > duree * 1.15) throw new Error(`${type} ${duree} min [${materiel}] : ${Math.round(estime)} min estimées`);
+      }
+    }
+  }
+  const salle = F.composer({ type: 'haut', objectif: 'force', materiel: ['salle'], duree: 45, graine: 3 });
+  const base = salle.find(p => p.role === 'principal' && PAR_ID.get(p.id).base && PAR_ID.get(p.id).charge);
+  egal(base.cible.reps, [4, 6], 'force :');
+  egal(F.composer({ type: 'etirements', materiel: [], duree: 15, graine: 1 }).every(p => PAR_ID.get(p.id).motif === 'etirement'), true, 'étirements :');
+});
+
+test('Forge : remplacer, lancer, clôturer, records et fusion', () => {
+  const reglages = { type: 'complet', objectif: 'muscle', materiel: ['halteres'], duree: 30 };
+  const plan = F.composer({ ...reglages, graine: 5 });
+  const i = plan.findIndex(p => p.role === 'principal');
+  const autre = F.remplacer(plan, i, reglages);
+  egal(PAR_ID.get(autre[i].id).motif, PAR_ID.get(plan[i].id).motif, 'même case :');
+  egal(autre[i].id === plan[i].id, false, 'autre exercice :');
+
+  const seance1 = { id: 's1', date: '2026-11-16', debut: 1000, exercices: [{ id: 'goblet-squat', series: [{ r: 12, kg: 16 }, { r: 12, kg: 16 }, { r: 12, kg: 16 }] }] };
+  const carnet = [seance1];
+  const p = [{ id: 'goblet-squat', role: 'principal', cible: { series: 3, reps: [8, 12], repos: 90 } }, { id: 'planche', role: 'principal', cible: { series: 3, secs: 30, repos: 45 } }];
+  const enc = F.lancer(p, { id: 's2', date: '2026-11-19', debut: 0, type: 'complet', objectif: 'muscle', materiel: ['halteres'] }, carnet);
+  egal(enc.exos[0].series.map(x => [x.r, x.kg]), [[8, 18], [8, 18], [8, 18]], 'charge augmentée après 3 × 12 :');
+  egal(enc.exos[1].series[0].s, 30);
+  enc.exos[0].series[0] = { r: '10', kg: '18', ok: true };
+  enc.exos[0].series[1] = { r: '9', kg: '18,5', ok: true };
+  enc.exos[1].series[0].ok = true;
+  const s2 = F.cloturer(enc, 30 * 60000, 5);
+  egal(s2.duree, 30);
+  egal(s2.exercices.map(e => [e.id, e.series]), [['goblet-squat', [{ r: 10, kg: 18 }, { r: 9, kg: 18.5 }]], ['planche', [{ s: 30 }]]]);
+  egal(F.recordsBattus(s2, carnet).map(r => [r.id, r.kg, r.r]), [['goblet-squat', 18.5, 9]], 'meilleure estimation du max :');
+  egal(F.texteSeries(seance1.exercices[0].series), '3 × 12 · 16 kg');
+  egal(F.volume(s2), 10 * 18 + 9 * 18.5);
+
+  const a = { mois: '2026-11', seances: { s1: { id: 's1', t: 1 }, s2: { id: 's2', t: 5 } } };
+  const b = { mois: '2026-11', seances: { s2: { id: 's2', t: 9, supprimee: true }, s3: { id: 's3', t: 2 } } };
+  const f = F.fusionnerEntrainements(a, b);
+  egal(Object.keys(f.seances), ['s1', 's2', 's3']);
+  egal(f.seances.s2.supprimee, true, 'la suppression la plus récente gagne :');
+  egal(F.carnet({ '2026-11': f }).length, 2);
 });
 
 const ok = resultats.filter(r => r.ok).length;
